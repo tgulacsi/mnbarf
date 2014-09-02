@@ -5,58 +5,78 @@ package mnb
 // Copyright (c) 2014, Cloudescape. All rights reserved.
 import (
 	"encoding/xml"
+	"time"
 
 	gowsdl "github.com/tgulacsi/gowsdl/generator"
-	"time"
 )
 
 // against "unused imports"
 var _ time.Time
+var _ xml.Name
 
 type GetInfo struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetInfo"`
 }
 
 type GetInfoResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetInfoResponse"`
+
 	GetInfoResult string `xml:"GetInfoResult,omitempty"`
 }
 
 type GetCurrentExchangeRates struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrentExchangeRates"`
 }
 
 type GetCurrentExchangeRatesResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrentExchangeRatesResponse"`
+
 	GetCurrentExchangeRatesResult string `xml:"GetCurrentExchangeRatesResult,omitempty"`
 }
 
 type GetExchangeRates struct {
-	XMLName       xml.Name `xml:"http://www.mnb.hu/webservices/ GetExchangeRates"`
-	StartDate     string   `xml:"startDate,omitempty"`
-	EndDate       string   `xml:"endDate,omitempty"`
-	CurrencyNames string   `xml:"currencyNames,omitempty"`
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetExchangeRates"`
+
+	StartDate     string `xml:"startDate,omitempty"`
+	EndDate       string `xml:"endDate,omitempty"`
+	CurrencyNames string `xml:"currencyNames,omitempty"`
 }
 
 type GetExchangeRatesResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetExchangeRatesResponse"`
+
 	GetExchangeRatesResult string `xml:"GetExchangeRatesResult,omitempty"`
 }
 
 type GetDateInterval struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetDateInterval"`
 }
 
 type GetDateIntervalResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetDateIntervalResponse"`
+
 	GetDateIntervalResult string `xml:"GetDateIntervalResult,omitempty"`
 }
 
 type GetCurrencies struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrencies"`
 }
 
 type GetCurrenciesResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrenciesResponse"`
+
 	GetCurrenciesResult string `xml:"GetCurrenciesResult,omitempty"`
 }
 
 type GetCurrencyUnits struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrencyUnits"`
+
 	CurrencyNames string `xml:"currencyNames,omitempty"`
 }
 
 type GetCurrencyUnitsResponse struct {
+	XMLName xml.Name `xml:"http://www.mnb.hu/webservices/ GetCurrencyUnitsResponse"`
+
 	GetCurrencyUnitsResult string `xml:"GetCurrencyUnitsResult,omitempty"`
 }
 
