@@ -98,20 +98,21 @@ func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 }
 
 type MNBExchangeRates struct {
+	Days []DayRates `xml:"Day"`
 }
 
 // GetExchangeRates returns the exchange rates between the specified dates.
-func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end time.Time) error {
+func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end time.Time) ([]DayRates, error) {
 	resp, err := ws.srvc.GetExchangeRates(&GetExchangeRates{
 		StartDate:     begin.Format("2006-01-02"),
 		EndDate:       end.Format("2006-01-02"),
 		CurrencyNames: currencyNames,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	Log.Debug("GetExchangeRates", "resp", resp)
 	var rates MNBExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetExchangeRatesResult), &rates)
-	return err
+	return rates.Days, err
 }

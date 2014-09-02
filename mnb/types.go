@@ -43,7 +43,6 @@ func (d *Date) UnmarshalText(data []byte) error {
 	return nil
 }
 
-
 type Double inf.Dec
 
 func (d *Double) String() string {
@@ -64,4 +63,3 @@ func (d *Double) UnmarshalText(data []byte) error {
 	}
 	return nil
 }
-

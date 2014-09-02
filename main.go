@@ -17,10 +17,13 @@ limitations under the License.
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"text/template"
 	"time"
 
 	gowsdl "github.com/tgulacsi/gowsdl/generator"
@@ -35,6 +38,7 @@ func main() {
 
 	flagWSDL := flag.String("wsdl", "http://www.mnb.hu/arfolyamok.asmx?WSDL", "MNB WSDL endpoint")
 	flagGowsdl := flag.String("gowsdl", "gowsdl", "path of gowsdl (only needed for generation)")
+	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 
 	flag.Parse()
 	todo := flag.Arg(0)
@@ -87,10 +91,12 @@ func main() {
 		if curr == "" {
 			curr = "USD"
 		}
-		err = ws.GetExchangeRates(curr, begin, end)
+		dayRates, err := ws.GetExchangeRates(curr, begin, end)
 		if err != nil {
 			Log.Error("GetExchangeRates", "error", err)
 		}
+		Log.Debug("GetExchangeRates", "dayRates", dayRates)
+		printDayRates(dayRates, *flagOutFormat)
 		return
 	}
 
@@ -100,10 +106,61 @@ func main() {
 		Log.Error("GetCurrentExchangeRates", "error", err)
 	}
 	Log.Debug("GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
-	dS := day.Day.String()
-	for _, rate := range day.Rates {
-		fmt.Printf(dS + ";" + rate.Currency + ";")
-		fmt.Printf("%d;%s\n", rate.Unit, rate.Rate.String())
+	printDayRates([]mnb.DayRates{day}, *flagOutFormat)
+}
+
+func printDayRates(days []mnb.DayRates, outFormat string) error {
+	type rowStruct struct {
+		Day      string
+		Currency string
+		Unit     int
+		Rate     string
 	}
 
+	bw := bufio.NewWriter(os.Stdout)
+	defer bw.Flush()
+
+	switch outFormat {
+	case "csv":
+		for _, day := range days {
+			dS := day.Day.String()
+			for _, rate := range day.Rates {
+				fmt.Fprintf(bw, dS+";"+rate.Currency+";")
+				fmt.Fprintf(bw, "%d;%s\n", rate.Unit, rate.Rate.String())
+			}
+		}
+
+	case "json":
+		enc := json.NewEncoder(bw)
+
+		row := rowStruct{}
+		bw.WriteString("[")
+		for _, day := range days {
+			row.Day = day.Day.String()
+			for _, rate := range day.Rates {
+				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
+				if err := enc.Encode(row); err != nil {
+					Log.Error("encoding", "row", row, "error", err)
+					return err
+				}
+			}
+		}
+		bw.WriteString("]")
+
+	default: // template
+		tmpl := template.Must(template.New("row").Parse(outFormat))
+		row := rowStruct{}
+		bw.WriteString("[")
+		for _, day := range days {
+			row.Day = day.Day.String()
+			for _, rate := range day.Rates {
+				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
+				if err := tmpl.Execute(bw, row); err != nil {
+					Log.Error("encoding", "row", row, "error", err)
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
