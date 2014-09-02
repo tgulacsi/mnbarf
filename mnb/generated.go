@@ -4,6 +4,8 @@ package mnb
 // Do not modify
 // Copyright (c) 2014, Cloudescape. All rights reserved.
 import (
+	"encoding/xml"
+
 	gowsdl "github.com/tgulacsi/gowsdl/generator"
 	"time"
 )
@@ -26,9 +28,10 @@ type GetCurrentExchangeRatesResponse struct {
 }
 
 type GetExchangeRates struct {
-	StartDate     string `xml:"startDate,omitempty"`
-	EndDate       string `xml:"endDate,omitempty"`
-	CurrencyNames string `xml:"currencyNames,omitempty"`
+	XMLName       xml.Name `xml:"http://www.mnb.hu/webservices/ GetExchangeRates"`
+	StartDate     string   `xml:"startDate,omitempty"`
+	EndDate       string   `xml:"endDate,omitempty"`
+	CurrencyNames string   `xml:"currencyNames,omitempty"`
 }
 
 type GetExchangeRatesResponse struct {
