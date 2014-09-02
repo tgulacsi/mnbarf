@@ -17,13 +17,10 @@ limitations under the License.
 package mnb
 
 import (
-	"bytes"
 	"encoding/xml"
-	"fmt"
 	"time"
 
 	"gopkg.in/inconshreveable/log15.v2"
-	"speter.net/go/exp/math/dec/inf"
 )
 
 var Log = log15.New()
@@ -49,25 +46,6 @@ type MNBArfolyamService struct {
 
 func NewMNBArfolyamService() MNBArfolyamService {
 	return MNBArfolyamService{srvc: NewMNBArfolyamServiceSoap("", false)}
-}
-
-type Date time.Time
-
-func (d Date) String() string {
-	return time.Time(d).String()
-}
-
-func (d Date) MarshalText() ([]byte, error) {
-	return []byte(time.Time(d).Format("2006-01-02")), nil
-}
-
-func (d *Date) UnmarshalText(data []byte) error {
-	t, err := time.Parse("2006-01-02", string(data))
-	if err != nil {
-		return err
-	}
-	*d = Date(t)
-	return nil
 }
 
 type MNBExchangeRatesQueryValues struct {
@@ -107,27 +85,6 @@ type Rate struct {
 	Rate     Double `xml:",chardata"`
 }
 
-type Double inf.Dec
-
-func (d *Double) String() string {
-	return (*inf.Dec)(d).String()
-}
-
-func (d *Double) MarshalText() ([]byte, error) {
-	return (*inf.Dec)(d).MarshalText()
-}
-
-func (d *Double) UnmarshalText(data []byte) error {
-	i := bytes.IndexByte(data, ',')
-	if i >= 0 {
-		data[i] = '.'
-	}
-	if _, ok := (*inf.Dec)(d).SetString(string(data)); !ok {
-		return fmt.Errorf("error parsing %q", data)
-	}
-	return nil
-}
-
 // GetCurrentExchangeRates returns the actual exchange rates.
 func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 	resp, err := ws.srvc.GetCurrentExchangeRates(&GetCurrentExchangeRates{})
@@ -140,12 +97,21 @@ func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 	return rates.Day, nil
 }
 
+type MNBExchangeRates struct {
+}
+
 // GetExchangeRates returns the exchange rates between the specified dates.
-func (ws MNBArfolyamService) GetExchangeRates(begin, end time.Time) error {
-	resp, err := ws.srvc.GetExchangeRates(&GetExchangeRates{})
+func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end time.Time) error {
+	resp, err := ws.srvc.GetExchangeRates(&GetExchangeRates{
+		StartDate:     begin.Format("2006-01-02"),
+		EndDate:       end.Format("2006-01-02"),
+		CurrencyNames: currencyNames,
+	})
 	if err != nil {
 		return err
 	}
 	Log.Debug("GetExchangeRates", "resp", resp)
-	return nil
+	var rates MNBExchangeRates
+	err = xml.Unmarshal([]byte(resp.GetExchangeRatesResult), &rates)
+	return err
 }
