@@ -39,8 +39,17 @@ func main() {
 	flagWSDL := flag.String("wsdl", "http://www.mnb.hu/arfolyamok.asmx?WSDL", "MNB WSDL endpoint")
 	flagGowsdl := flag.String("gowsdl", "gowsdl", "path of gowsdl (only needed for generation)")
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
+	flagVerbose := flag.Bool("v", false, "verbose logging")
 
 	flag.Parse()
+	hndl := log15.StderrHandler
+	if !*flagVerbose {
+		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
+	}
+	gowsdl.Log.SetHandler(hndl)
+	mnb.Log.SetHandler(hndl)
+	Log.SetHandler(hndl)
+
 	todo := flag.Arg(0)
 	if todo == "" {
 		todo = "current"
@@ -59,8 +68,6 @@ func main() {
 		return
 	}
 
-	gowsdl.Log.SetHandler(log15.StderrHandler)
-	mnb.Log.SetHandler(log15.StderrHandler)
 	ws := mnb.NewMNBArfolyamService()
 
 	switch todo {
