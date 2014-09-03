@@ -86,10 +86,13 @@ Possible options:
 	}
 	switch todo {
 	case "gen", "generate":
+		Log.Info("gowsdl -p mnb -o generated.go")
 		if err := exec.Command(*flagGowsdl, "-p", "mnb", "-o", "generated.go", *flagWSDL).Run(); err != nil {
 			Log.Crit("generating mng/generated.go", "error", err)
+			Log.Warn("you may try 'go get -u github.com/cloudescape/gowsdl'")
 			os.Exit(1)
 		}
+		Log.Info("go build")
 		if err := exec.Command("go", "build").Run(); err != nil {
 			Log.Crit("building", "error", err)
 			os.Exit(2)
