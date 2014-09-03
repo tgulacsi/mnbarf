@@ -26,6 +26,7 @@ import (
 	"text/template"
 	"time"
 
+	gowsdl "github.com/cloudescape/gowsdl/generator"
 	"github.com/tgulacsi/mnbarf/mnb"
 	"gopkg.in/inconshreveable/log15.v2"
 )
@@ -41,11 +42,6 @@ func main() {
 	flagVerbose := flag.Bool("v", false, "verbose logging")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage: mnbarf [options] <command>
-
-Generate (and build) new webservice client
-(you will need an installed Go and have gowsdl installed
- (go get github.com/cloudescape/gowsdl)):
-	mnbarf [options: -wsdl, -gowsdl] gen|generate
 
 List all the possible currencies:
 	mnbarf currencies|currency|curr
@@ -68,6 +64,11 @@ Get the actual exchange rates, for all currencies - this is the defallt:
 	or anything else, which will be treated as a Go text/template,
 		with fields of Day, Currency, Unit and Rate.
 
+Generate (and build) new webservice client
+(you will need an installed Go and have gowsdl installed
+ (go get github.com/cloudescape/gowsdl)):
+	mnbarf [options: -wsdl, -gowsdl] gen|generate
+
 Possible options:
 `)
 		flag.PrintDefaults()
@@ -77,6 +78,7 @@ Possible options:
 	if !*flagVerbose {
 		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
 	}
+	gowsdl.Log.SetHandler(hndl)
 	mnb.Log.SetHandler(hndl)
 	Log.SetHandler(hndl)
 

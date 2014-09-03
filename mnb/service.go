@@ -57,16 +57,16 @@ type MNBExchangeRatesQueryValues struct {
 // GetCurrencies returns the list of currencies (3 letter codes)
 func (ws MNBArfolyamService) GetCurrencies() ([]string, error) {
 	t := time.Now()
-	resp, err := ws.srvc.GetInfo(&GetInfo{})
+	resp, err := ws.srvc.GetCurrencies(&GetCurrencies{})
 	if err != nil {
 		return nil, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetInfo", "duration", dur)
-	Log.Debug("GetInfo", "resp", resp)
+	Log.Info("GetCurrencies", "duration", dur)
+	Log.Debug("GetCurrencies", "resp", resp)
 
 	var qv MNBExchangeRatesQueryValues
-	err = xml.Unmarshal([]byte(resp.GetInfoResult), &qv)
+	err = xml.Unmarshal([]byte(resp.GetCurrenciesResult), &qv)
 	if err != nil {
 		return nil, err
 	}
