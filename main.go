@@ -26,7 +26,6 @@ import (
 	"text/template"
 	"time"
 
-	gowsdl "github.com/tgulacsi/gowsdl/generator"
 	"github.com/tgulacsi/mnbarf/mnb"
 	"gopkg.in/inconshreveable/log15.v2"
 )
@@ -40,13 +39,44 @@ func main() {
 	flagGowsdl := flag.String("gowsdl", "gowsdl", "path of gowsdl (only needed for generation)")
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 	flagVerbose := flag.Bool("v", false, "verbose logging")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `Usage: mnbarf [options] <command>
 
+Generate (and build) new webservice client
+(you will need an installed Go and have gowsdl installed
+ (go get github.com/cloudescape/gowsdl)):
+	mnbarf [options: -wsdl, -gowsdl] gen|generate
+
+List all the possible currencies:
+	mnbarf currencies|currency|curr
+
+Get the exchange rates for a specified period, for the specified currencies:
+	mnbarf [options: -format] range <currencies> [<first day> [<last day>]]
+The default first day is 30 days before yesterday,
+and the default last day is yesterday.
+
+for example to get USD and EUR for all days in the history (till yesterday):
+	mnbarf -format=csv USD,EUR 1949-01-01
+
+Get the actual exchange rates, for all currencies - this is the defallt:
+	mnbarf [options: -format]
+
+-format awaits
+	csv for semicolon separated output in the column order of
+		day;currency;unit;rate
+	json to output JSON with Day, Currency, Unit and Rate fields
+	or anything else, which will be treated as a Go text/template,
+		with fields of Day, Currency, Unit and Rate.
+
+Possible options:
+`)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	hndl := log15.StderrHandler
 	if !*flagVerbose {
 		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
 	}
-	gowsdl.Log.SetHandler(hndl)
 	mnb.Log.SetHandler(hndl)
 	Log.SetHandler(hndl)
 
@@ -71,7 +101,7 @@ func main() {
 	ws := mnb.NewMNBArfolyamService()
 
 	switch todo {
-	case "currencies", "currency":
+	case "currencies", "currency", "curr":
 		currencies, err := ws.GetCurrencies()
 		if err != nil {
 			Log.Error("GetCurrencies", "error", err)
@@ -84,19 +114,33 @@ func main() {
 		return
 
 	case "range":
-		begin, err := time.Parse("2006-01-02", flag.Arg(1))
-		if err != nil {
-			Log.Error("cannot parse first arg as 2006-01-02", "error", err)
-			os.Exit(3)
-		}
-		end, err := time.Parse("2006-01-02", flag.Arg(2))
-		if err != nil {
-			Log.Error("cannot parse second arg as 2006-01-02", "error", err)
-			os.Exit(3)
-		}
-		curr := flag.Arg(3)
+		curr := flag.Arg(1)
 		if curr == "" {
-			curr = "USD"
+			Log.Error("currency is needed")
+			os.Exit(5)
+		}
+		var begin, end time.Time
+		var err error
+		s := flag.Arg(2)
+		if s == "" {
+			begin = time.Now().AddDate(0, 0, -30)
+			end = time.Now().AddDate(0, 0, -1)
+		} else {
+			begin, err = time.Parse("2006-01-02", s)
+			if err != nil {
+				Log.Error("cannot parse first arg as 2006-01-02", "error", err)
+				os.Exit(3)
+			}
+			s = flag.Arg(3)
+			if s == "" {
+				end = time.Now().AddDate(0, 0, -1)
+			} else {
+				end, err = time.Parse("2006-01-02", flag.Arg(2))
+				if err != nil {
+					Log.Error("cannot parse second arg as 2006-01-02", "error", err)
+					os.Exit(3)
+				}
+			}
 		}
 		dayRates, err := ws.GetExchangeRates(curr, begin, end)
 		if err != nil {
@@ -155,7 +199,11 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 		bw.WriteString("]")
 
 	default: // template
-		tmpl := template.Must(template.New("row").Parse(outFormat))
+		tmpl, err := template.New("row").Parse(outFormat)
+		if err != nil {
+			Log.Crit("template parse", "error", err)
+			os.Exit(4)
+		}
 		row := rowStruct{}
 		bw.WriteString("[")
 		for _, day := range days {

@@ -56,10 +56,13 @@ type MNBExchangeRatesQueryValues struct {
 
 // GetCurrencies returns the list of currencies (3 letter codes)
 func (ws MNBArfolyamService) GetCurrencies() ([]string, error) {
+	t := time.Now()
 	resp, err := ws.srvc.GetInfo(&GetInfo{})
 	if err != nil {
 		return nil, err
 	}
+	dur := time.Since(t)
+	Log.Info("GetInfo", "duration", dur)
 	Log.Debug("GetInfo", "resp", resp)
 
 	var qv MNBExchangeRatesQueryValues
@@ -87,10 +90,13 @@ type Rate struct {
 
 // GetCurrentExchangeRates returns the actual exchange rates.
 func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
+	t := time.Now()
 	resp, err := ws.srvc.GetCurrentExchangeRates(&GetCurrentExchangeRates{})
 	if err != nil {
 		return DayRates{}, err
 	}
+	dur := time.Since(t)
+	Log.Info("GetCurrentExchangeRates", "duration", dur)
 	Log.Debug("GetCurrentExchangeRates", "resp", resp)
 	var rates MNBCurrentExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetCurrentExchangeRatesResult), &rates)
@@ -103,6 +109,7 @@ type MNBExchangeRates struct {
 
 // GetExchangeRates returns the exchange rates between the specified dates.
 func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end time.Time) ([]DayRates, error) {
+	t := time.Now()
 	resp, err := ws.srvc.GetExchangeRates(&GetExchangeRates{
 		StartDate:     begin.Format("2006-01-02"),
 		EndDate:       end.Format("2006-01-02"),
@@ -111,6 +118,8 @@ func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end t
 	if err != nil {
 		return nil, err
 	}
+	dur := time.Since(t)
+	Log.Info("GetExchangeRates", "duration", dur)
 	Log.Debug("GetExchangeRates", "resp", resp)
 	var rates MNBExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetExchangeRatesResult), &rates)

@@ -7,7 +7,7 @@ import (
 	"encoding/xml"
 	"time"
 
-	gowsdl "github.com/tgulacsi/gowsdl/generator"
+	gowsdl "github.com/cloudescape/gowsdl/generator"
 )
 
 // against "unused imports"
