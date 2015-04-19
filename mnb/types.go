@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"speter.net/go/exp/math/dec/inf"
+	"gopkg.in/inf.v0"
 )
 
 type Date time.Time
