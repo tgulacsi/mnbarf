@@ -115,7 +115,7 @@ Possible options:
 			os.Exit(2)
 		}
 		Log.Debug("GetCurrentCentralBankBaseRate", "rate", rate)
-		fmt.Println(rate)
+		fmt.Println(rate.Publication, rate.Rate)
 		return
 
 	case "currencies", "currency", "curr":
