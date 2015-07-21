@@ -29,6 +29,10 @@ func init() {
 	Log.SetHandler(log15.DiscardHandler())
 }
 
+//////////////////
+// ExchangeRate //
+//////////////////
+
 // MNBArfolyamService - see
 // http://www.biprojekt.hu/blog/MNB_arfolyamok_letoltese-Kozvetlenul_az_MNB-tol.htm
 /*
@@ -40,6 +44,7 @@ func init() {
 
    Nekünk az adattárház feltöltéséhez a GetInfo, és a GetExchangeRates metódusokra lesz leginkább szükségünk.
 */
+
 type MNBArfolyamService struct {
 	srvc *MNBArfolyamServiceSoap
 }
@@ -124,4 +129,65 @@ func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end t
 	var rates MNBExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetExchangeRatesResult), &rates)
 	return rates.Days, err
+}
+
+//////////////
+// BaseRate //
+//////////////
+
+type MNBAlapkamatService struct {
+	srvc *MNBAlapkamatServiceSoap
+}
+
+func NewMNBAlapkamatService() MNBAlapkamatService {
+	return MNBAlapkamatService{srvc: NewMNBAlapkamatServiceSoap("", false)}
+}
+
+// &lt;MNBCurrentCentralBankBaseRate&gt;&lt;BaseRate publicationDate="2015-06-24"&gt;1,5000&lt;/BaseRate&gt;&lt;/MNBCurrentCentralBankBaseRate&gt
+type MNBCurrentCentralBankBaseRate struct {
+	BaseRate MNBBaseRate
+}
+type MNBBaseRate struct {
+	XMLName     xml.Name `xml:"BaseRate" json:"-"`
+	Publication Date     `xml:"publicationDate,attr"`
+	Rate        Double   `xml:",chardata"`
+}
+
+// GetCurrentBaseRate returns the current base rate.
+func (ws MNBAlapkamatService) GetCurrentBaseRate() (MNBBaseRate, error) {
+	t := time.Now()
+	resp, err := ws.srvc.GetCurrentCentralBankBaseRate(&GetCurrentCentralBankBaseRate{})
+	if err != nil {
+		return MNBBaseRate{}, err
+	}
+	dur := time.Since(t)
+	Log.Info("GetCurrentCentralBankBaseRate", "duration", dur)
+	Log.Debug("GetCurrentCentralBankBaseRate", "resp", resp)
+	var rate MNBCurrentCentralBankBaseRate
+	err = xml.Unmarshal([]byte(resp.GetCurrentCentralBankBaseRateResult), &rate)
+	return rate.BaseRate, err
+}
+
+// <![CDATA[<MNBCentralBankBaseRate><BaseRates><BaseRate publicationDate="2015-03-25">1,9500</BaseRate><BaseRate publicationDate="2015-04-22">1,8000</BaseRate><BaseRate publicationDate="2015-05-27">1,6500</BaseRate><BaseRate publicationDate="2015-06-24">1,5000</BaseRate></BaseRates></MNBCentralBankBaseRate>]]>
+type MNBCentralBankBaseRate struct {
+	XMLName   xml.Name      `xml:"MNBCentralBankBaseRate" json:"-"`
+	BaseRates []MNBBaseRate `xml:"BaseRates>BaseRate"`
+}
+
+// GetBaseRates returns the base rates between the specified dates.
+func (ws MNBAlapkamatService) GetBaseRates(begin, end time.Time) ([]MNBBaseRate, error) {
+	t := time.Now()
+	resp, err := ws.srvc.GetCentralBankBaseRate(&GetCentralBankBaseRate{
+		StartDate: begin.Format("2006-01-02"),
+		EndDate:   end.Format("2006-01-02"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	dur := time.Since(t)
+	Log.Info("GetCentralBankBaseRate", "duration", dur)
+	Log.Debug("GetCentralBankBaseRate", "resp", resp)
+	var rates MNBCentralBankBaseRate
+	err = xml.Unmarshal([]byte(resp.GetCentralBankBaseRateResult), &rates)
+	return rates.BaseRates, err
 }

@@ -45,12 +45,12 @@ func (d *Date) UnmarshalText(data []byte) error {
 
 type Double inf.Dec
 
-func (d *Double) String() string {
-	return (*inf.Dec)(d).String()
+func (d Double) String() string {
+	return (*inf.Dec)(&d).String()
 }
 
-func (d *Double) MarshalText() ([]byte, error) {
-	return (*inf.Dec)(d).MarshalText()
+func (d Double) MarshalText() ([]byte, error) {
+	return (*inf.Dec)(&d).MarshalText()
 }
 
 func (d *Double) UnmarshalText(data []byte) error {

@@ -22,22 +22,22 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"text/template"
 	"time"
 
-	gowsdl "github.com/cloudescape/gowsdl/generator"
 	"github.com/tgulacsi/mnbarf/mnb"
+	"gopkg.in/errgo.v1"
 	"gopkg.in/inconshreveable/log15.v2"
 )
+
+//go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
+//go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
 
 var Log = log15.New()
 
 func main() {
 	Log.SetHandler(log15.StderrHandler)
 
-	flagWSDL := flag.String("wsdl", "http://www.mnb.hu/arfolyamok.asmx?WSDL", "MNB WSDL endpoint")
-	flagGowsdl := flag.String("gowsdl", "gowsdl", "path of gowsdl (only needed for generation)")
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 	flagVerbose := flag.Bool("v", false, "verbose logging")
 	flag.Usage = func() {
@@ -57,6 +57,9 @@ for example to get USD and EUR for all days in the history (till yesterday):
 Get the actual exchange rates, for all currencies - this is the defallt:
 	mnbarf [options: -format]
 
+Get the base rates:
+	mnbarf rates|baserate|kamat|alapkamat
+
 -format awaits
 	csv for semicolon separated output in the column order of
 		day;currency;unit;rate
@@ -67,7 +70,7 @@ Get the actual exchange rates, for all currencies - this is the defallt:
 Generate (and build) new webservice client
 (you will need an installed Go and have gowsdl installed
  (go get github.com/cloudescape/gowsdl)):
-	mnbarf [options: -wsdl, -gowsdl] gen|generate
+    go generate && go install
 
 Possible options:
 `)
@@ -78,7 +81,6 @@ Possible options:
 	if !*flagVerbose {
 		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
 	}
-	gowsdl.Log.SetHandler(hndl)
 	mnb.Log.SetHandler(hndl)
 	Log.SetHandler(hndl)
 
@@ -86,28 +88,38 @@ Possible options:
 	if todo == "" {
 		todo = "current"
 	}
+
+	wsC := mnb.NewMNBArfolyamService()
+	wsR := mnb.NewMNBAlapkamatService()
+
 	switch todo {
-	case "gen", "generate":
-		Log.Info("gowsdl -p mnb -o generated.go")
-		if err := exec.Command(*flagGowsdl, "-p", "mnb", "-o", "generated.go", *flagWSDL).Run(); err != nil {
-			Log.Crit("generating mng/generated.go", "error", err)
-			Log.Warn("you may try 'go get -u github.com/cloudescape/gowsdl'")
-			os.Exit(1)
+	case "alapkamat", "kamat", "rate", "baserate":
+		if flag.NArg() > 1 {
+			begin, end, err := parseDates(flag.Arg(1), flag.Arg(2))
+			if err != nil {
+				Log.Error("parse dates", "error", err)
+				os.Exit(3)
+			}
+			rates, err := wsR.GetBaseRates(begin, end)
+			if err != nil {
+				Log.Error("GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
+				os.Exit(2)
+			}
+			Log.Debug("GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
+			printBaseRates(rates, *flagOutFormat)
+			return
 		}
-		Log.Info("go build")
-		if err := exec.Command("go", "build").Run(); err != nil {
-			Log.Crit("building", "error", err)
+		rate, err := wsR.GetCurrentBaseRate()
+		if err != nil {
+			Log.Error("GetCurrentCentralBankBaseRate", "error", err)
 			os.Exit(2)
 		}
-		os.Exit(0)
+		Log.Debug("GetCurrentCentralBankBaseRate", "rate", rate)
+		fmt.Println(rate)
 		return
-	}
 
-	ws := mnb.NewMNBArfolyamService()
-
-	switch todo {
 	case "currencies", "currency", "curr":
-		currencies, err := ws.GetCurrencies()
+		currencies, err := wsC.GetCurrencies()
 		if err != nil {
 			Log.Error("GetCurrencies", "error", err)
 			os.Exit(2)
@@ -124,30 +136,12 @@ Possible options:
 			Log.Error("currency is needed")
 			os.Exit(5)
 		}
-		var begin, end time.Time
-		var err error
-		s := flag.Arg(2)
-		if s == "" {
-			begin = time.Now().AddDate(0, 0, -30)
-			end = time.Now().AddDate(0, 0, -1)
-		} else {
-			begin, err = time.Parse("2006-01-02", s)
-			if err != nil {
-				Log.Error("cannot parse first arg as 2006-01-02", "error", err)
-				os.Exit(3)
-			}
-			s = flag.Arg(3)
-			if s == "" {
-				end = time.Now().AddDate(0, 0, -1)
-			} else {
-				end, err = time.Parse("2006-01-02", flag.Arg(2))
-				if err != nil {
-					Log.Error("cannot parse second arg as 2006-01-02", "error", err)
-					os.Exit(3)
-				}
-			}
+		begin, end, err := parseDates(flag.Arg(2), flag.Arg(3))
+		if err != nil {
+			Log.Error("parse dates", "error", err)
+			os.Exit(3)
 		}
-		dayRates, err := ws.GetExchangeRates(curr, begin, end)
+		dayRates, err := wsC.GetExchangeRates(curr, begin, end)
 		if err != nil {
 			Log.Error("GetExchangeRates", "error", err)
 		}
@@ -157,12 +151,34 @@ Possible options:
 	}
 
 	// current
-	day, err := ws.GetCurrentExchangeRates()
+	day, err := wsC.GetCurrentExchangeRates()
 	if err != nil {
 		Log.Error("GetCurrentExchangeRates", "error", err)
 	}
 	Log.Debug("GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
 	printDayRates([]mnb.DayRates{day}, *flagOutFormat)
+}
+
+func parseDates(beginS, endS string) (begin, end time.Time, err error) {
+	if beginS == "" {
+		begin = time.Now().AddDate(0, 0, -30)
+		end = time.Now().AddDate(0, 0, -1)
+		return
+	}
+	begin, err = time.Parse("2006-01-02", beginS)
+	if err != nil {
+		err = errgo.Notef(err, "arg="+beginS)
+		return
+	}
+	if endS == "" {
+		end = time.Now().AddDate(0, 0, -1)
+		return
+	}
+	end, err = time.Parse("2006-01-02", endS)
+	if err != nil {
+		err = errgo.Notef(err, "arg="+endS)
+	}
+	return
 }
 
 func printDayRates(days []mnb.DayRates, outFormat string) error {
@@ -219,6 +235,45 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 					Log.Error("encoding", "row", row, "error", err)
 					return err
 				}
+			}
+		}
+	}
+	return nil
+}
+
+func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
+	bw := bufio.NewWriter(os.Stdout)
+	defer bw.Flush()
+
+	switch outFormat {
+	case "csv":
+		for _, rate := range rates {
+			fmt.Fprintf(bw, "%s;%s\n", rate.Publication, rate.Rate)
+		}
+
+	case "json":
+		enc := json.NewEncoder(bw)
+
+		bw.WriteString("[")
+		for _, rate := range rates {
+			if err := enc.Encode(rate); err != nil {
+				Log.Error("encoding", "rate", rate, "error", err)
+				return err
+			}
+		}
+		bw.WriteString("]")
+
+	default: // template
+		tmpl, err := template.New("row").Parse(outFormat)
+		if err != nil {
+			Log.Crit("template parse", "error", err)
+			os.Exit(4)
+		}
+		bw.WriteString("[")
+		for _, rate := range rates {
+			if err := tmpl.Execute(bw, rate); err != nil {
+				Log.Error("encoding", "rate", rate, "error", err)
+				return err
 			}
 		}
 	}
