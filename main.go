@@ -69,7 +69,7 @@ Get the base rates:
 
 Generate (and build) new webservice client
 (you will need an installed Go and have gowsdl installed
- (go get github.com/cloudescape/gowsdl)):
+ (go get github.com/hooklift/gowsdl)):
     go generate && go install
 
 Possible options:

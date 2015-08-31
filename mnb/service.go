@@ -18,6 +18,7 @@ package mnb
 
 import (
 	"encoding/xml"
+	"fmt"
 	"time"
 
 	"gopkg.in/inconshreveable/log15.v2"
@@ -174,6 +175,12 @@ type MNBCentralBankBaseRate struct {
 	BaseRates []MNBBaseRate `xml:"BaseRates>BaseRate"`
 }
 
+// <MNBCentralBankBaseRates><BaseRate publicationDate="2015-07-22">1,35</BaseRate><BaseRate publicationDate="2015-06-24">1,50</BaseRate><BaseRate publicationDate="2015-05-27">1,65</BaseRate><BaseRate publicationDate="2015-04-22">1,80</BaseRate><BaseRate publicationDate="2015-03-25">1,95</BaseRate></MNBCentralBankBaseRates>
+type MNBCentralBankBaseRates struct {
+	XMLName   xml.Name      `xml:"MNBCentralBankBaseRates" json:"-"`
+	BaseRates []MNBBaseRate `xml:"BaseRate"`
+}
+
 // GetBaseRates returns the base rates between the specified dates.
 func (ws MNBAlapkamatService) GetBaseRates(begin, end time.Time) ([]MNBBaseRate, error) {
 	t := time.Now()
@@ -187,7 +194,9 @@ func (ws MNBAlapkamatService) GetBaseRates(begin, end time.Time) ([]MNBBaseRate,
 	dur := time.Since(t)
 	Log.Info("GetCentralBankBaseRate", "duration", dur)
 	Log.Debug("GetCentralBankBaseRate", "resp", resp)
-	var rates MNBCentralBankBaseRate
-	err = xml.Unmarshal([]byte(resp.GetCentralBankBaseRateResult), &rates)
-	return rates.BaseRates, err
+	var rates MNBCentralBankBaseRates
+	if err = xml.Unmarshal([]byte(resp.GetCentralBankBaseRateResult), &rates); err != nil {
+		return nil, fmt.Errorf("%v\n%s", err, resp.GetCentralBankBaseRateResult)
+	}
+	return rates.BaseRates, nil
 }
