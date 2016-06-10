@@ -25,8 +25,6 @@ import (
 	"text/template"
 	"time"
 
-	"gopkg.in/inconshreveable/log15.v2"
-
 	"github.com/pkg/errors"
 	"github.com/tgulacsi/go/loghlp/kitloghlp"
 	"github.com/tgulacsi/mnbarf/mnb"
@@ -77,11 +75,9 @@ Possible options:
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	hndl := log15.StderrHandler
-	if !*flagVerbose {
-		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
+	if *flagVerbose {
+		mnb.Log = logger.With("lib", "mnb").Log
 	}
-	mnb.Log = logger.With("lib", "mnb").Log
 
 	todo := flag.Arg(0)
 	if todo == "" {
@@ -91,6 +87,7 @@ Possible options:
 	wsC := mnb.NewMNBArfolyamService()
 	wsR := mnb.NewMNBAlapkamatService()
 
+	Log := logger.Log
 	switch todo {
 	case "alapkamat", "kamat", "rate", "baserate":
 		if flag.NArg() > 1 {
@@ -188,6 +185,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 		Rate     string
 	}
 
+	Log := logger.Log
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 
@@ -241,6 +239,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 }
 
 func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
+	Log := logger.Log
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 
