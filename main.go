@@ -25,19 +25,19 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/tgulacsi/mnbarf/mnb"
-	"gopkg.in/errgo.v1"
 	"gopkg.in/inconshreveable/log15.v2"
+
+	"github.com/pkg/errors"
+	"github.com/tgulacsi/go/loghlp/kitloghlp"
+	"github.com/tgulacsi/mnbarf/mnb"
 )
 
 //go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
 //go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
 
-var Log = log15.New()
+var logger = kitloghlp.New(os.Stderr)
 
 func main() {
-	Log.SetHandler(log15.StderrHandler)
-
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 	flagVerbose := flag.Bool("v", false, "verbose logging")
 	flag.Usage = func() {
@@ -81,8 +81,7 @@ Possible options:
 	if !*flagVerbose {
 		hndl = log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
 	}
-	mnb.Log.SetHandler(hndl)
-	Log.SetHandler(hndl)
+	mnb.Log = logger.With("lib", "mnb").Log
 
 	todo := flag.Arg(0)
 	if todo == "" {
@@ -97,34 +96,34 @@ Possible options:
 		if flag.NArg() > 1 {
 			begin, end, err := parseDates(flag.Arg(1), flag.Arg(2))
 			if err != nil {
-				Log.Error("parse dates", "error", err)
+				Log("msg", "parse dates", "error", err)
 				os.Exit(3)
 			}
 			rates, err := wsR.GetBaseRates(begin, end)
 			if err != nil {
-				Log.Error("GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
+				Log("msg", "GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
 				os.Exit(2)
 			}
-			Log.Debug("GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
+			//Log("msg","GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
 			printBaseRates(rates, *flagOutFormat)
 			return
 		}
 		rate, err := wsR.GetCurrentBaseRate()
 		if err != nil {
-			Log.Error("GetCurrentCentralBankBaseRate", "error", err)
+			Log("msg", "GetCurrentCentralBankBaseRate", "error", err)
 			os.Exit(2)
 		}
-		Log.Debug("GetCurrentCentralBankBaseRate", "rate", rate)
+		//Log("msg","GetCurrentCentralBankBaseRate", "rate", rate)
 		fmt.Println(rate.Publication, rate.Rate)
 		return
 
 	case "currencies", "currency", "curr":
 		currencies, err := wsC.GetCurrencies()
 		if err != nil {
-			Log.Error("GetCurrencies", "error", err)
+			Log("msg", "GetCurrencies", "error", err)
 			os.Exit(2)
 		}
-		Log.Debug("GetCurrencies", "currencies", currencies)
+		//Log("msg","GetCurrencies", "currencies", currencies)
 		for _, curr := range currencies {
 			fmt.Println(curr)
 		}
@@ -133,19 +132,19 @@ Possible options:
 	case "range":
 		curr := flag.Arg(1)
 		if curr == "" {
-			Log.Error("currency is needed")
+			Log("msg", "currency is needed")
 			os.Exit(5)
 		}
 		begin, end, err := parseDates(flag.Arg(2), flag.Arg(3))
 		if err != nil {
-			Log.Error("parse dates", "error", err)
+			Log("msg", "parse dates", "error", err)
 			os.Exit(3)
 		}
 		dayRates, err := wsC.GetExchangeRates(curr, begin, end)
 		if err != nil {
-			Log.Error("GetExchangeRates", "error", err)
+			Log("msg", "GetExchangeRates", "error", err)
 		}
-		Log.Debug("GetExchangeRates", "dayRates", dayRates)
+		//Log("msg","GetExchangeRates", "dayRates", dayRates)
 		printDayRates(dayRates, *flagOutFormat)
 		return
 	}
@@ -153,9 +152,9 @@ Possible options:
 	// current
 	day, err := wsC.GetCurrentExchangeRates()
 	if err != nil {
-		Log.Error("GetCurrentExchangeRates", "error", err)
+		Log("msg", "GetCurrentExchangeRates", "error", err)
 	}
-	Log.Debug("GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
+	//Log("msg","GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
 	printDayRates([]mnb.DayRates{day}, *flagOutFormat)
 }
 
@@ -167,7 +166,7 @@ func parseDates(beginS, endS string) (begin, end time.Time, err error) {
 	}
 	begin, err = time.Parse("2006-01-02", beginS)
 	if err != nil {
-		err = errgo.Notef(err, "arg="+beginS)
+		err = errors.Wrapf(err, "arg="+beginS)
 		return
 	}
 	if endS == "" {
@@ -176,7 +175,7 @@ func parseDates(beginS, endS string) (begin, end time.Time, err error) {
 	}
 	end, err = time.Parse("2006-01-02", endS)
 	if err != nil {
-		err = errgo.Notef(err, "arg="+endS)
+		err = errors.Wrapf(err, "arg="+endS)
 	}
 	return
 }
@@ -212,7 +211,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 			for _, rate := range day.Rates {
 				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
 				if err := enc.Encode(row); err != nil {
-					Log.Error("encoding", "row", row, "error", err)
+					Log("msg", "encoding", "row", row, "error", err)
 					return err
 				}
 			}
@@ -222,7 +221,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 	default: // template
 		tmpl, err := template.New("row").Parse(outFormat)
 		if err != nil {
-			Log.Crit("template parse", "error", err)
+			Log("msg", "template parse", "error", err)
 			os.Exit(4)
 		}
 		row := rowStruct{}
@@ -232,7 +231,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 			for _, rate := range day.Rates {
 				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
 				if err := tmpl.Execute(bw, row); err != nil {
-					Log.Error("encoding", "row", row, "error", err)
+					Log("msg", "encoding", "row", row, "error", err)
 					return err
 				}
 			}
@@ -257,7 +256,7 @@ func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
 		bw.WriteString("[")
 		for _, rate := range rates {
 			if err := enc.Encode(rate); err != nil {
-				Log.Error("encoding", "rate", rate, "error", err)
+				Log("msg", "encoding", "rate", rate, "error", err)
 				return err
 			}
 		}
@@ -266,13 +265,13 @@ func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
 	default: // template
 		tmpl, err := template.New("row").Parse(outFormat)
 		if err != nil {
-			Log.Crit("template parse", "error", err)
+			Log("msg", "template parse", "error", err)
 			os.Exit(4)
 		}
 		bw.WriteString("[")
 		for _, rate := range rates {
 			if err := tmpl.Execute(bw, rate); err != nil {
-				Log.Error("encoding", "rate", rate, "error", err)
+				Log("msg", "encoding", "rate", rate, "error", err)
 				return err
 			}
 		}

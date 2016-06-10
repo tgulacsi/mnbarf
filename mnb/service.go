@@ -20,15 +20,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"time"
-
-	"gopkg.in/inconshreveable/log15.v2"
 )
 
-var Log = log15.New()
-
-func init() {
-	Log.SetHandler(log15.DiscardHandler())
-}
+var Log = func(...interface{}) error { return nil }
 
 //////////////////
 // ExchangeRate //
@@ -68,8 +62,8 @@ func (ws MNBArfolyamService) GetCurrencies() ([]string, error) {
 		return nil, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetCurrencies", "duration", dur)
-	Log.Debug("GetCurrencies", "resp", resp)
+	Log("msg", "GetCurrencies", "duration", dur)
+	//Log("msg","GetCurrencies", "resp", resp)
 
 	var qv MNBExchangeRatesQueryValues
 	err = xml.Unmarshal([]byte(resp.GetCurrenciesResult), &qv)
@@ -102,8 +96,8 @@ func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 		return DayRates{}, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetCurrentExchangeRates", "duration", dur)
-	Log.Debug("GetCurrentExchangeRates", "resp", resp)
+	Log("msg", "GetCurrentExchangeRates", "duration", dur)
+	//Log("msg","GetCurrentExchangeRates", "resp", resp)
 	var rates MNBCurrentExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetCurrentExchangeRatesResult), &rates)
 	return rates.Day, nil
@@ -125,8 +119,8 @@ func (ws MNBArfolyamService) GetExchangeRates(currencyNames string, begin, end t
 		return nil, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetExchangeRates", "duration", dur)
-	Log.Debug("GetExchangeRates", "resp", resp)
+	Log("msg", "GetExchangeRates", "duration", dur)
+	//Log("msg","GetExchangeRates", "resp", resp)
 	var rates MNBExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetExchangeRatesResult), &rates)
 	return rates.Days, err
@@ -162,8 +156,8 @@ func (ws MNBAlapkamatService) GetCurrentBaseRate() (MNBBaseRate, error) {
 		return MNBBaseRate{}, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetCurrentCentralBankBaseRate", "duration", dur)
-	Log.Debug("GetCurrentCentralBankBaseRate", "resp", resp)
+	Log("msg", "GetCurrentCentralBankBaseRate", "duration", dur)
+	//Log("msg","GetCurrentCentralBankBaseRate", "resp", resp)
 	var rate MNBCurrentCentralBankBaseRate
 	err = xml.Unmarshal([]byte(resp.GetCurrentCentralBankBaseRateResult), &rate)
 	return rate.BaseRate, err
@@ -192,8 +186,8 @@ func (ws MNBAlapkamatService) GetBaseRates(begin, end time.Time) ([]MNBBaseRate,
 		return nil, err
 	}
 	dur := time.Since(t)
-	Log.Info("GetCentralBankBaseRate", "duration", dur)
-	Log.Debug("GetCentralBankBaseRate", "resp", resp)
+	Log("msg", "GetCentralBankBaseRate", "duration", dur)
+	//Log("msg","GetCentralBankBaseRate", "resp", resp)
 	var rates MNBCentralBankBaseRates
 	if err = xml.Unmarshal([]byte(resp.GetCentralBankBaseRateResult), &rates); err != nil {
 		return nil, fmt.Errorf("%v\n%s", err, resp.GetCentralBankBaseRateResult)
