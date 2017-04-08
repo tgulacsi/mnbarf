@@ -21,19 +21,22 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"text/template"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/tgulacsi/go/loghlp/kitloghlp"
 	"github.com/tgulacsi/mnbarf/mnb"
 )
 
 //go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
 //go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
 
-var logger = kitloghlp.New(os.Stderr)
+var Log = func(keyvals ...interface{}) error {
+	log.Println(keyvals...)
+	return nil
+}
 
 func main() {
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
@@ -76,7 +79,9 @@ Possible options:
 	}
 	flag.Parse()
 	if *flagVerbose {
-		mnb.Log = logger.With("lib", "mnb").Log
+		mnb.Log = func(keyvals ...interface{}) error {
+			return Log(append(keyvals, "lib", "mnb")...)
+		}
 	}
 
 	todo := flag.Arg(0)
@@ -87,7 +92,6 @@ Possible options:
 	wsC := mnb.NewMNBArfolyamService()
 	wsR := mnb.NewMNBAlapkamatService()
 
-	Log := logger.Log
 	switch todo {
 	case "alapkamat", "kamat", "rate", "baserate":
 		if flag.NArg() > 1 {
@@ -185,7 +189,6 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 		Rate     string
 	}
 
-	Log := logger.Log
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 
@@ -239,7 +242,6 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 }
 
 func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
-	Log := logger.Log
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 

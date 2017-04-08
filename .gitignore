@@ -1,2 +1,12 @@
 *.sw[po]
 mnbarf
+vendor/github.com/hooklift/gowsdl/.editorconfig
+vendor/github.com/hooklift/gowsdl/.travis.yml
+vendor/github.com/hooklift/gowsdl/CONTRIBUTING.md
+vendor/github.com/hooklift/gowsdl/Godeps
+vendor/github.com/hooklift/gowsdl/README.md
+vendor/github.com/hooklift/gowsdl/cli_test.go
+vendor/github.com/hooklift/gowsdl/generator/fixtures/
+vendor/github.com/hooklift/gowsdl/test.txt
+vendor/github.com/hooklift/gowsdl/waferry/
+

@@ -18,10 +18,10 @@ package mnb
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
-	"gopkg.in/inf.v0"
+	"github.com/cockroachdb/apd"
+	"github.com/pkg/errors"
 )
 
 type Date time.Time
@@ -43,14 +43,14 @@ func (d *Date) UnmarshalText(data []byte) error {
 	return nil
 }
 
-type Double inf.Dec
+type Double apd.Decimal
 
 func (d Double) String() string {
-	return (*inf.Dec)(&d).String()
+	return (*apd.Decimal)(&d).ToStandard()
 }
 
 func (d Double) MarshalText() ([]byte, error) {
-	return (*inf.Dec)(&d).MarshalText()
+	return []byte((*apd.Decimal)(&d).ToStandard()), nil
 }
 
 func (d *Double) UnmarshalText(data []byte) error {
@@ -58,8 +58,8 @@ func (d *Double) UnmarshalText(data []byte) error {
 	if i >= 0 {
 		data[i] = '.'
 	}
-	if _, ok := (*inf.Dec)(d).SetString(string(data)); !ok {
-		return fmt.Errorf("error parsing %q", data)
+	if _, _, err := (*apd.Decimal)(d).SetString(string(data)); err != nil {
+		return errors.Wrap(err, string(data))
 	}
 	return nil
 }
