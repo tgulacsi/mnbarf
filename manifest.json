@@ -1,8 +1,5 @@
 {
     "dependencies": {
-        "github.com/cockroachdb/apd": {
-            "branch": "master"
-        },
         "github.com/hooklift/gowsdl": {
             "revision": "058d360d9c1a25579ff03de5bb6d523afec204d3"
         },

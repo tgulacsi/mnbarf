@@ -43,14 +43,16 @@ func (d *Date) UnmarshalText(data []byte) error {
 	return nil
 }
 
-type Double apd.Decimal
+type Double struct {
+	*apd.Decimal
+}
 
 func (d Double) String() string {
-	return (*apd.Decimal)(&d).ToStandard()
+	return d.Decimal.ToStandard()
 }
 
 func (d Double) MarshalText() ([]byte, error) {
-	return []byte((*apd.Decimal)(&d).ToStandard()), nil
+	return []byte(d.Decimal.ToStandard()), nil
 }
 
 func (d *Double) UnmarshalText(data []byte) error {
@@ -58,7 +60,13 @@ func (d *Double) UnmarshalText(data []byte) error {
 	if i >= 0 {
 		data[i] = '.'
 	}
-	if _, _, err := (*apd.Decimal)(d).SetString(string(data)); err != nil {
+	var err error
+	if d.Decimal == nil {
+		d.Decimal, _, err = apd.NewFromString(string(data))
+	} else {
+		_, _, err = d.Decimal.SetString(string(data))
+	}
+	if err != nil {
 		return errors.Wrap(err, string(data))
 	}
 	return nil
