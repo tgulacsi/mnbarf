@@ -48,11 +48,11 @@ type Double struct {
 }
 
 func (d Double) String() string {
-	return d.Decimal.ToStandard()
+	return d.Decimal.Text('f')
 }
 
 func (d Double) MarshalText() ([]byte, error) {
-	return []byte(d.Decimal.ToStandard()), nil
+	return []byte(d.Decimal.Text('f')), nil
 }
 
 func (d *Double) UnmarshalText(data []byte) error {
