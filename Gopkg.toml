@@ -22,10 +22,6 @@
 
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/cockroachdb/apd"
-
-[[constraint]]
   branch = "fix_for_#16"
   name = "github.com/hooklift/gowsdl"
 

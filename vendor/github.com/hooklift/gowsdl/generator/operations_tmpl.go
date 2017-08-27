@@ -27,25 +27,25 @@ var opsTmpl = `
 		{{$soapAction := findSoapAction .Name $portType}}
 		{{$output := findType .Output.Message}}
 
-		{{/*if ne $soapAction ""*/}}
-		{{if gt $faults 0}}
-		//
-		// Error can be either of the following types:
-		// {{range .Faults}}
-		//   - {{.Name}} {{.Doc}}{{end}}
-		//
-		{{end}}
-		{{if ne .Doc ""}}// {{.Doc}}{{end}}
-		func (service *{{$portType}}) {{makePublic .Name}} (request *{{$requestType}}) (*{{$output}}, error) {
-			response := &{{$output}}{}
-			err := service.client.Call("{{$soapAction}}", request, response)
-			if err != nil {
-				return nil, err
-			}
+		{{if ne $soapAction ""}}
+			{{if gt $faults 0}}
+			//
+			// Error can be either of the following types:
+			// {{range .Faults}}
+			//   - {{.Name}} {{.Doc}}{{end}}
+			//
+			{{end}}
+			{{if ne .Doc ""}}// {{.Doc}}{{end}}
+			func (service *{{$portType}}) {{makePublic .Name}} (request *{{$requestType}}) (*{{$output}}, error) {
+				response := &{{$output}}{}
+				err := service.client.Call("{{$soapAction}}", request, response)
+				if err != nil {
+					return nil, err
+				}
 
-			return response, nil
-		}
-		{{/*end*/}}
+				return response, nil
+			}
+		{{end}}
 	{{end}}
 {{end}}
 `
