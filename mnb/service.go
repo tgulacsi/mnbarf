@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Tamás Gulácsi
+Copyright 2017 Tamás Gulácsi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 	//Log("msg","GetCurrentExchangeRates", "resp", resp)
 	var rates MNBCurrentExchangeRates
 	err = xml.Unmarshal([]byte(resp.GetCurrentExchangeRatesResult), &rates)
-	return rates.Day, nil
+	return rates.Day, err
 }
 
 type MNBExchangeRates struct {
