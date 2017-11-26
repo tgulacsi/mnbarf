@@ -8,10 +8,10 @@
   revision = "f03b0011b0efc3437be20fa3979ae89082de8861"
 
 [[projects]]
-  branch = "master"
+  branch = "fix_for_#16"
   name = "github.com/hooklift/gowsdl"
   packages = ["generator"]
-  revision = "058d360d9c1a25579ff03de5bb6d523afec204d3"
+  revision = "596224a774ef2fabb724cd8a955e53006beac705"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -46,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9600073c41040c1fe68d88addb737e80fb9a712ec8f51b9c2f6ab9895c470799"
+  inputs-digest = "85e6cd8b518eebd0a8ee147f952d60a92c9bf6a582e17d4279b2df43edb74fcc"
   solver-name = "gps-cdcl"
   solver-version = 1

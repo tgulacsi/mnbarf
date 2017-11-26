@@ -24,7 +24,3 @@
 [[constraint]]
   branch = "fix_for_#16"
   name = "github.com/hooklift/gowsdl"
-
-[[constraint]]
-  name = "github.com/pkg/errors"
-  version = "0.8.0"
