@@ -19,6 +19,7 @@ package mnb
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -44,8 +45,11 @@ type MNBArfolyamService struct {
 	srvc *MNBArfolyamServiceSoap
 }
 
-func NewMNBArfolyamService() MNBArfolyamService {
-	return MNBArfolyamService{srvc: NewMNBArfolyamServiceSoap("", false)}
+func NewMNBArfolyamService(urls ...string) MNBArfolyamService {
+	if len(urls) == 0 {
+		urls = append(urls, "")
+	}
+	return MNBArfolyamService{srvc: NewMNBArfolyamServiceSoap(urls[0], strings.HasPrefix(urls[0], "https://"))}
 }
 
 type MNBExchangeRatesQueryValues struct {
@@ -134,8 +138,11 @@ type MNBAlapkamatService struct {
 	srvc *MNBAlapkamatServiceSoap
 }
 
-func NewMNBAlapkamatService() MNBAlapkamatService {
-	return MNBAlapkamatService{srvc: NewMNBAlapkamatServiceSoap("", false)}
+func NewMNBAlapkamatService(urls ...string) MNBAlapkamatService {
+	if len(urls) == 0 {
+		urls = append(urls, "")
+	}
+	return MNBAlapkamatService{srvc: NewMNBAlapkamatServiceSoap(urls[0], strings.HasPrefix(urls[0], "https://"))}
 }
 
 // &lt;MNBCurrentCentralBankBaseRate&gt;&lt;BaseRate publicationDate="2015-06-24"&gt;1,5000&lt;/BaseRate&gt;&lt;/MNBCurrentCentralBankBaseRate&gt

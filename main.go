@@ -1,5 +1,5 @@
 /*
-Copyright 2017 Tamás Gulácsi
+Copyright 2019 Tamás Gulácsi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ var Log = func(keyvals ...interface{}) error {
 func main() {
 	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 	flagVerbose := flag.Bool("v", false, "verbose logging")
+	flagURL := flag.String("url", "", "URL to use")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage: mnbarf [options] <command>
 
@@ -68,6 +69,8 @@ Get the base rates:
 	or anything else, which will be treated as a Go text/template,
 		with fields of Day, Currency, Unit and Rate.
 
+-url http://www.mnb.hu/arfolyamok.asmx
+
 Generate (and build) new webservice client
 (you will need an installed Go and have gowsdl installed
  (go get github.com/hooklift/gowsdl)):
@@ -89,11 +92,11 @@ Possible options:
 		todo = "current"
 	}
 
-	wsC := mnb.NewMNBArfolyamService()
-	wsR := mnb.NewMNBAlapkamatService()
+	wsC := mnb.NewMNBArfolyamService(*flagURL)
 
 	switch todo {
 	case "alapkamat", "kamat", "rate", "baserate":
+		wsR := mnb.NewMNBAlapkamatService(*flagURL)
 		if flag.NArg() > 1 {
 			begin, end, err := parseDates(flag.Arg(1), flag.Arg(2))
 			if err != nil {
