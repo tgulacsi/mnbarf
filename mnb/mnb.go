@@ -164,14 +164,22 @@ func (m MNB) GetCurrentExchangeRates(ctx context.Context) (DayRates, error) {
 </s:Envelope>
 */
 
-func (m MNB) GetDateIntervalResponse(ctx context.Context) (DayRates, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", strings.NewReader(m.GetCurrentExchangeRatesXML()))
+type MNBStoredInterval struct {
+	Interval DateInterval `xml:"DateInterva"`
+}
+type DateInterval struct {
+	Start Date `xml:"startdate,attr"`
+	End   Date `xml:"enddate,attr"`
+}
+
+func (m MNB) GetDateIntervalResponse(ctx context.Context) (DateInterval, error) {
+	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", strings.NewReader(m.GetDateIntervalXML()))
 	if err != nil {
-		return DayRates{}, err
+		return DateInterval{}, err
 	}
-	var res MNBCurrentExchangeRates
+	var res MNBStoredInterval
 	err = xml.Unmarshal(b, &res)
-	return res.Day, err
+	return res.Interval, err
 }
 
 /*
@@ -184,6 +192,22 @@ func (m MNB) GetDateIntervalResponse(ctx context.Context) (DayRates, error) {
 </s:Envelope>
 */
 
+type MNBExchangeRatesQueryValues struct {
+	FirstDate  Date
+	LastDate   Date
+	Currencies []string `xml:"Currencies>Curr"`
+}
+
+func (m MNB) GetInfo(ctx context.Context) (MNBExchangeRatesQueryValues, error) {
+	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetInfoXML()))
+	if err != nil {
+		return MNBExchangeRatesQueryValues{}, err
+	}
+	var res MNBExchangeRatesQueryValues
+	err = xml.Unmarshal(b, &res)
+	return res, err
+}
+
 /*
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
    <s:Body>
@@ -193,6 +217,20 @@ func (m MNB) GetDateIntervalResponse(ctx context.Context) (DayRates, error) {
    </s:Body>
 </s:Envelope>
 */
+
+type MNBExchangeRates struct {
+	Days []DayRates `xml:"Day"`
+}
+
+func (m MNB) GetExchangeRates(ctx context.Context, start, end time.Time, currencies ...string) ([]DayRates, error) {
+	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetExchangeRatesXML(start, end, currencies...)))
+	if err != nil {
+		return nil, err
+	}
+	var res MNBExchangeRates
+	err = xml.Unmarshal(b, &res)
+	return res.Days, err
+}
 
 // FindBody will find the first StartElement after soap:Body.
 func FindBody(dec *xml.Decoder) ([]byte, error) {
@@ -236,7 +274,7 @@ func nextCharAfterStart(dec *xml.Decoder) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if st, ok := tok.(xml.StartElement); ok {
+		if _, ok := tok.(xml.StartElement); ok {
 			seenStart = true
 		} else if cd, ok := tok.(xml.CharData); ok && seenStart {
 			return []byte(cd), nil

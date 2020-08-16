@@ -290,29 +290,29 @@ func (req MNB) GetDateIntervalXML() string {
 }
 
 //line mnb.qtpl:68
-func (req MNB) StreamGetInfoReqXML(qw422016 *qt422016.Writer) {
+func (req MNB) StreamGetInfoXML(qw422016 *qt422016.Writer) {
 //line mnb.qtpl:68
 	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetInfo/></soapenv:Body></soapenv:Envelope>`)
 //line mnb.qtpl:75
 }
 
 //line mnb.qtpl:75
-func (req MNB) WriteGetInfoReqXML(qq422016 qtio422016.Writer) {
+func (req MNB) WriteGetInfoXML(qq422016 qtio422016.Writer) {
 //line mnb.qtpl:75
 	qw422016 := qt422016.AcquireWriter(qq422016)
 //line mnb.qtpl:75
-	req.StreamGetInfoReqXML(qw422016)
+	req.StreamGetInfoXML(qw422016)
 //line mnb.qtpl:75
 	qt422016.ReleaseWriter(qw422016)
 //line mnb.qtpl:75
 }
 
 //line mnb.qtpl:75
-func (req MNB) GetInfoReqXML() string {
+func (req MNB) GetInfoXML() string {
 //line mnb.qtpl:75
 	qb422016 := qt422016.AcquireByteBuffer()
 //line mnb.qtpl:75
-	req.WriteGetInfoReqXML(qb422016)
+	req.WriteGetInfoXML(qb422016)
 //line mnb.qtpl:75
 	qs422016 := string(qb422016.B)
 //line mnb.qtpl:75

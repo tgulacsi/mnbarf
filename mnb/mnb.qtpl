@@ -65,7 +65,7 @@
 </soapenv:Envelope>
 {% endfunc %}
 
-{% func (req MNB) GetInfoReqXML() %}
+{% func (req MNB) GetInfoXML() %}
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
    <soapenv:Header/>
    <soapenv:Body>
