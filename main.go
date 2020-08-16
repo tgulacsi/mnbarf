@@ -134,6 +134,21 @@ func Main() error {
 			return err
 		},
 	}
+	infoCmd := ffcli.Command{
+		Name: "info",
+		Exec: func(ctx context.Context, args []string) error {
+			info, err := wsC.GetInfo(ctx)
+			if err != nil {
+				Log("msg", "GetInfo", "error", err)
+				return err
+			}
+			fmt.Printf("%s - %s:\n", info.FirstDate, info.LastDate)
+			for _, curr := range info.Currencies {
+				fmt.Printf("\t%s\n", curr)
+			}
+			return nil
+		},
+	}
 
 	app := ffcli.Command{FlagSet: fs,
 		LongHelp: `Usage: mnbarf [options] <command>
@@ -171,7 +186,7 @@ Generate (and build) new webservice client
 
 `,
 		Subcommands: append(append(append(append(append(make([]*ffcli.Command, 0, 16),
-			&currentCmd),
+			&currentCmd, &infoCmd),
 			alias(&baserateCmd, "alapkamat", "kamat", "rate")...),
 			alias(&currenciesCmd, "currency", "curr")...),
 			alias(&ratesCmd, "rates")...),
