@@ -18,14 +18,18 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"text/template"
 	"time"
 
+	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pkg/errors"
 	"github.com/tgulacsi/mnbarf/mnb"
 )
@@ -39,11 +43,99 @@ var Log = func(keyvals ...interface{}) error {
 }
 
 func main() {
-	flagOutFormat := flag.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
-	flagVerbose := flag.Bool("v", false, "verbose logging")
-	flagURL := flag.String("url", "", "URL to use")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `Usage: mnbarf [options] <command>
+	if err := Main(); err != nil {
+		log.Fatalf("%+v", err)
+	}
+}
+
+func Main() error {
+	var wsC, wsR mnb.MNB
+	fs := flag.NewFlagSet("mnbarf", flag.ContinueOnError)
+	flagOutFormat := fs.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
+	flagVerbose := fs.Bool("v", false, "verbose logging")
+	flagURL := fs.String("url", "", "URL to use")
+
+	baserateCmd := ffcli.Command{
+		Name: "baserate",
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 1 {
+				begin, end, err := parseDates(args[0], args[1])
+				if err != nil {
+					Log("msg", "parse dates", "error", err)
+					return err
+				}
+				rates, err := wsR.GetBaseRates(ctx, begin, end)
+				if err != nil {
+					Log("msg", "GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
+					return err
+				}
+				//Log("msg","GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
+				printBaseRates(rates, *flagOutFormat)
+				return nil
+			}
+			rate, err := wsR.GetCurrentBaseRate(ctx)
+			if err != nil {
+				Log("msg", "GetCurrentCentralBankBaseRate", "error", err)
+				return err
+			}
+			//Log("msg","GetCurrentCentralBankBaseRate", "rate", rate)
+			fmt.Println(rate.Publication, rate.Rate)
+			return nil
+		},
+	}
+
+	currenciesCmd := ffcli.Command{
+		Name: "currencies",
+		Exec: func(ctx context.Context, args []string) error {
+			currencies, err := wsC.GetCurrencies(ctx)
+			if err != nil {
+				Log("msg", "GetCurrencies", "error", err)
+				return err
+			}
+			//Log("msg","GetCurrencies", "currencies", currencies)
+			for _, curr := range currencies {
+				fmt.Println(curr)
+			}
+			return nil
+		},
+	}
+
+	ratesCmd := ffcli.Command{
+		Name: "rates",
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) == 0 || args[0] == "" {
+				return fmt.Errorf("currency is needed")
+			}
+			curr := args[0]
+			begin, end, err := parseDates(args[1], args[2])
+			if err != nil {
+				return err
+			}
+			dayRates, err := wsC.GetExchangeRates(ctx, begin, end, curr)
+			if err != nil {
+				Log("msg", "GetExchangeRates", "error", err)
+			}
+			//Log("msg","GetExchangeRates", "dayRates", dayRates)
+			printDayRates(dayRates, *flagOutFormat)
+			return err
+		},
+	}
+	currentCmd := ffcli.Command{
+		Name: "current",
+		Exec: func(ctx context.Context, args []string) error {
+			// current
+			day, err := wsC.GetCurrentExchangeRates(ctx)
+			if err != nil {
+				Log("msg", "GetCurrentExchangeRates", "error", err)
+			}
+			//Log("msg","GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
+			printDayRates([]mnb.DayRates{day}, *flagOutFormat)
+			return err
+		},
+	}
+
+	app := ffcli.Command{FlagSet: fs,
+		LongHelp: `Usage: mnbarf [options] <command>
 
 List all the possible currencies:
 	mnbarf currencies|currency|curr
@@ -76,90 +168,33 @@ Generate (and build) new webservice client
  (go get github.com/hooklift/gowsdl)):
     go generate && go install
 
-Possible options:
-`)
-		flag.PrintDefaults()
+`,
+		Subcommands: append(append(append(append(append(make([]*ffcli.Command, 0, 16),
+			&currentCmd),
+			alias(&baserateCmd, "alapkamat", "kamat", "rate")...),
+			alias(&currenciesCmd, "currency", "curr")...),
+			alias(&ratesCmd, "rates")...),
+		),
+
+		Exec: func(ctx context.Context, args []string) error {
+			return currentCmd.Exec(ctx, args)
+		},
 	}
-	flag.Parse()
+	if err := app.Parse(os.Args[1:]); err != nil {
+		return err
+	}
 	if *flagVerbose {
 		mnb.Log = func(keyvals ...interface{}) error {
 			return Log(append(keyvals, "lib", "mnb")...)
 		}
 	}
 
-	todo := flag.Arg(0)
-	if todo == "" {
-		todo = "current"
-	}
+	wsC = mnb.NewMNBArfolyamService(*flagURL)
+	wsR = mnb.NewMNBAlapkamatService(*flagURL)
 
-	wsC := mnb.NewMNBArfolyamService(*flagURL)
-
-	switch todo {
-	case "alapkamat", "kamat", "rate", "baserate":
-		wsR := mnb.NewMNBAlapkamatService(*flagURL)
-		if flag.NArg() > 1 {
-			begin, end, err := parseDates(flag.Arg(1), flag.Arg(2))
-			if err != nil {
-				Log("msg", "parse dates", "error", err)
-				os.Exit(3)
-			}
-			rates, err := wsR.GetBaseRates(begin, end)
-			if err != nil {
-				Log("msg", "GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
-				os.Exit(2)
-			}
-			//Log("msg","GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
-			printBaseRates(rates, *flagOutFormat)
-			return
-		}
-		rate, err := wsR.GetCurrentBaseRate()
-		if err != nil {
-			Log("msg", "GetCurrentCentralBankBaseRate", "error", err)
-			os.Exit(2)
-		}
-		//Log("msg","GetCurrentCentralBankBaseRate", "rate", rate)
-		fmt.Println(rate.Publication, rate.Rate)
-		return
-
-	case "currencies", "currency", "curr":
-		currencies, err := wsC.GetCurrencies()
-		if err != nil {
-			Log("msg", "GetCurrencies", "error", err)
-			os.Exit(2)
-		}
-		//Log("msg","GetCurrencies", "currencies", currencies)
-		for _, curr := range currencies {
-			fmt.Println(curr)
-		}
-		return
-
-	case "range":
-		curr := flag.Arg(1)
-		if curr == "" {
-			Log("msg", "currency is needed")
-			os.Exit(5)
-		}
-		begin, end, err := parseDates(flag.Arg(2), flag.Arg(3))
-		if err != nil {
-			Log("msg", "parse dates", "error", err)
-			os.Exit(3)
-		}
-		dayRates, err := wsC.GetExchangeRates(curr, begin, end)
-		if err != nil {
-			Log("msg", "GetExchangeRates", "error", err)
-		}
-		//Log("msg","GetExchangeRates", "dayRates", dayRates)
-		printDayRates(dayRates, *flagOutFormat)
-		return
-	}
-
-	// current
-	day, err := wsC.GetCurrentExchangeRates()
-	if err != nil {
-		Log("msg", "GetCurrentExchangeRates", "error", err)
-	}
-	//Log("msg","GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
-	printDayRates([]mnb.DayRates{day}, *flagOutFormat)
+	ctx, cancel := wrap(context.Background())
+	defer cancel()
+	return app.Run(ctx)
 }
 
 func parseDates(beginS, endS string) (begin, end time.Time, err error) {
@@ -281,4 +316,29 @@ func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
 		}
 	}
 	return nil
+}
+
+func alias(cmd *ffcli.Command, names ...string) []*ffcli.Command {
+	commands := make([]*ffcli.Command, 1+len(names))
+	commands[0] = cmd
+	for i, nm := range names {
+		cmd2 := *cmd
+		cmd2.Name = nm
+		commands[i+1] = &cmd2
+	}
+	return commands
+}
+
+// wrap returns a new context with cancel that is canceled on interrupts.
+func wrap(ctx context.Context) (context.Context, context.CancelFunc) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+	go func() {
+		<-sigCh
+		cancel()
+		signal.Stop(sigCh)
+	}()
+	return ctx, cancel
 }

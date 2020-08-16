@@ -14,7 +14,19 @@ const (
 	AlapkamatURL  = "http://www.mnb.hu/alapkamat.asmx"
 )
 
-type MNB struct{}
+var Log func(...interface{}) error
+
+func NewMNBArfolyamService(URL string) MNB {
+	return MNB{URL: URL}
+}
+func NewMNBAlapkamatService(URL string) MNB {
+	return MNB{URL: URL}
+}
+
+type MNB struct {
+	URL string
+	*http.Client
+}
 
 /*
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
@@ -36,13 +48,16 @@ type MNBBaseRate struct {
 }
 
 func (m MNB) GetCurrentCentralBankBaseRate(ctx context.Context) (MNBBaseRate, error) {
-	b, err := call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCurrentCentralBankBaseRateXML()))
+	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCurrentCentralBankBaseRateXML()))
 	if err != nil {
 		return MNBBaseRate{}, err
 	}
 	var res MNBCurrentCentralBankBaseRate
 	err = xml.Unmarshal(b, &res)
 	return res.BaseRate, err
+}
+func (m MNB) GetCurrentBaseRate(ctx context.Context) (MNBBaseRate, error) {
+	return m.GetCurrentCentralBankBaseRate(ctx)
 }
 
 /*
@@ -61,13 +76,17 @@ type MNBCentralBankBaseRates struct {
 }
 
 func (m MNB) GetCentralBankBaseRate(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
-	b, err := call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCentralBankBaseRateXML(start, end)))
+	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCentralBankBaseRateXML(start, end)))
 	if err != nil {
 		return nil, err
 	}
 	var res MNBCentralBankBaseRates
 	err = xml.Unmarshal(b, &res)
 	return res.BaseRates, err
+}
+
+func (m MNB) GetBaseRates(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
+	return m.GetCentralBankBaseRate(ctx, start, end)
 }
 
 /*
@@ -84,7 +103,7 @@ type MNBCurrencies struct {
 }
 
 func (m MNB) GetCurrencies(ctx context.Context) ([]string, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies", strings.NewReader(m.GetCurrenciesXML()))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies", strings.NewReader(m.GetCurrenciesXML()))
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +130,7 @@ type Unit struct {
 }
 
 func (m MNB) GetCurrencyUnits(ctx context.Context, currency string) ([]Unit, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencyUnits", strings.NewReader(m.GetCurrencyUnitsXML(currency)))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencyUnits", strings.NewReader(m.GetCurrencyUnitsXML(currency)))
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +164,7 @@ type Rate struct {
 }
 
 func (m MNB) GetCurrentExchangeRates(ctx context.Context) (DayRates, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", strings.NewReader(m.GetCurrentExchangeRatesXML()))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", strings.NewReader(m.GetCurrentExchangeRatesXML()))
 	if err != nil {
 		return DayRates{}, err
 	}
@@ -173,7 +192,7 @@ type DateInterval struct {
 }
 
 func (m MNB) GetDateIntervalResponse(ctx context.Context) (DateInterval, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", strings.NewReader(m.GetDateIntervalXML()))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", strings.NewReader(m.GetDateIntervalXML()))
 	if err != nil {
 		return DateInterval{}, err
 	}
@@ -199,7 +218,7 @@ type MNBExchangeRatesQueryValues struct {
 }
 
 func (m MNB) GetInfo(ctx context.Context) (MNBExchangeRatesQueryValues, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetInfoXML()))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetInfoXML()))
 	if err != nil {
 		return MNBExchangeRatesQueryValues{}, err
 	}
@@ -223,7 +242,7 @@ type MNBExchangeRates struct {
 }
 
 func (m MNB) GetExchangeRates(ctx context.Context, start, end time.Time, currencies ...string) ([]DayRates, error) {
-	b, err := call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetExchangeRatesXML(start, end, currencies...)))
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetExchangeRatesXML(start, end, currencies...)))
 	if err != nil {
 		return nil, err
 	}
@@ -284,13 +303,21 @@ func nextCharAfterStart(dec *xml.Decoder) ([]byte, error) {
 	}
 }
 
-func call(ctx context.Context, URL, action string, body io.Reader) ([]byte, error) {
+func (m MNB) call(ctx context.Context, defaultURL, action string, body io.Reader) ([]byte, error) {
+	URL := m.URL
+	if URL == "" {
+		URL = defaultURL
+	}
 	req, err := http.NewRequest("POST", URL, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("SOAPAction", action)
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	client := m.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
