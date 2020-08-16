@@ -1,0 +1,90 @@
+{% import "time" %}
+
+{% stripspace %}
+
+{% func printDate(t time.Time) %}
+{% if !t.IsZero() %}{%s= t.Format("2006-01-02") %}{% endif %}
+{% endfunc %}
+
+{% func (req MNB) GetCurrentCentralBankBaseRateXML() %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrentCentralBankBaseRate/>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetCentralBankBaseRateXML(start, end time.Time) %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCentralBankBaseRate>
+         {% if !start.IsZero() %}<web:startDate>{%= printDate(start) %}</web:startDate>{% endif %}
+         {% if !end.IsZero() %}<web:endDate>{%= printDate(end) %}</web:endDate>{% endif %}
+      </web:GetCentralBankBaseRate>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetCurrenciesXML() %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrencies/>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetCurrencyUnitsXML(currencies ...string) %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrencyUnits>
+         {% for _, curr := range currencies %}<web:currencyNames>{%s= curr %}</web:currencyNames>{% endfor %}
+      </web:GetCurrencyUnits>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetCurrentExchangeRatesXML() %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrentExchangeRates/>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetDateIntervalXML() %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetDateInterval/>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetInfoReqXML() %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetInfo/>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% func (req MNB) GetExchangeRatesXML(start, end time.Time, currencies ...string) %}
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetExchangeRates>
+         {% if !start.IsZero() %}<web:startDate>{%= printDate(start) %}</web:startDate>{% endif %}
+         {% if !end.IsZero() %}<web:endDate>{%= printDate(end) %}</web:endDate>{% endif %}
+         {% for _, curr := range currencies %}<web:currencyNames>{%s= curr %}</web:currencyNames>{% endfor %}
+      </web:GetExchangeRates>
+   </soapenv:Body>
+</soapenv:Envelope>
+{% endfunc %}
+
+{% endstripspace %}

@@ -77,21 +77,6 @@ func (ws MNBArfolyamService) GetCurrencies() ([]string, error) {
 	return qv.Currencies, nil
 }
 
-type MNBCurrentExchangeRates struct {
-	Day DayRates
-}
-
-type DayRates struct {
-	Day   *Date  `xml:"date,attr"`
-	Rates []Rate `xml:"Rate"`
-}
-
-type Rate struct {
-	Currency string `xml:"curr,attr"`
-	Unit     int    `xml:"unit,attr"`
-	Rate     Double `xml:",chardata"`
-}
-
 // GetCurrentExchangeRates returns the actual exchange rates.
 func (ws MNBArfolyamService) GetCurrentExchangeRates() (DayRates, error) {
 	t := time.Now()
@@ -145,16 +130,6 @@ func NewMNBAlapkamatService(urls ...string) MNBAlapkamatService {
 	return MNBAlapkamatService{srvc: NewMNBAlapkamatServiceSoap(urls[0], strings.HasPrefix(urls[0], "https://"))}
 }
 
-// &lt;MNBCurrentCentralBankBaseRate&gt;&lt;BaseRate publicationDate="2015-06-24"&gt;1,5000&lt;/BaseRate&gt;&lt;/MNBCurrentCentralBankBaseRate&gt
-type MNBCurrentCentralBankBaseRate struct {
-	BaseRate MNBBaseRate
-}
-type MNBBaseRate struct {
-	XMLName     xml.Name `xml:"BaseRate" json:"-"`
-	Publication Date     `xml:"publicationDate,attr"`
-	Rate        Double   `xml:",chardata"`
-}
-
 // GetCurrentBaseRate returns the current base rate.
 func (ws MNBAlapkamatService) GetCurrentBaseRate() (MNBBaseRate, error) {
 	t := time.Now()
@@ -174,12 +149,6 @@ func (ws MNBAlapkamatService) GetCurrentBaseRate() (MNBBaseRate, error) {
 type MNBCentralBankBaseRate struct {
 	XMLName   xml.Name      `xml:"MNBCentralBankBaseRate" json:"-"`
 	BaseRates []MNBBaseRate `xml:"BaseRates>BaseRate"`
-}
-
-// <MNBCentralBankBaseRates><BaseRate publicationDate="2015-07-22">1,35</BaseRate><BaseRate publicationDate="2015-06-24">1,50</BaseRate><BaseRate publicationDate="2015-05-27">1,65</BaseRate><BaseRate publicationDate="2015-04-22">1,80</BaseRate><BaseRate publicationDate="2015-03-25">1,95</BaseRate></MNBCentralBankBaseRates>
-type MNBCentralBankBaseRates struct {
-	XMLName   xml.Name      `xml:"MNBCentralBankBaseRates" json:"-"`
-	BaseRates []MNBBaseRate `xml:"BaseRate"`
 }
 
 // GetBaseRates returns the base rates between the specified dates.
