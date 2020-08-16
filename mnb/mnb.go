@@ -3,6 +3,7 @@ package mnb
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -14,18 +15,20 @@ const (
 	AlapkamatURL  = "http://www.mnb.hu/alapkamat.asmx"
 )
 
-var Log func(...interface{}) error
-
-func NewMNBArfolyamService(URL string) MNB {
-	return MNB{URL: URL}
+func NewMNBArfolyamService(URL string, client *http.Client, Log func(...interface{}) error) MNBArfolyamService {
+	return MNBArfolyamService{MNB: MNB{URL: URL, Client: client, Log: Log}}
 }
-func NewMNBAlapkamatService(URL string) MNB {
-	return MNB{URL: URL}
+func NewMNBAlapkamatService(URL string, client *http.Client, Log func(...interface{}) error) MNBAlapkamatService {
+	return MNBAlapkamatService{MNB: MNB{URL: URL, Client: client, Log: Log}}
 }
 
 type MNB struct {
 	URL string
+	Log func(...interface{}) error
 	*http.Client
+}
+type MNBAlapkamatService struct {
+	MNB
 }
 
 /*
@@ -47,8 +50,8 @@ type MNBBaseRate struct {
 	Rate        Double   `xml:",chardata"`
 }
 
-func (m MNB) GetCurrentCentralBankBaseRate(ctx context.Context) (MNBBaseRate, error) {
-	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCurrentCentralBankBaseRateXML()))
+func (m MNBAlapkamatService) GetCurrentCentralBankBaseRate(ctx context.Context) (MNBBaseRate, error) {
+	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCurrentCentralBankBaseRate", m.GetCurrentCentralBankBaseRateXML())
 	if err != nil {
 		return MNBBaseRate{}, err
 	}
@@ -56,7 +59,7 @@ func (m MNB) GetCurrentCentralBankBaseRate(ctx context.Context) (MNBBaseRate, er
 	err = xml.Unmarshal(b, &res)
 	return res.BaseRate, err
 }
-func (m MNB) GetCurrentBaseRate(ctx context.Context) (MNBBaseRate, error) {
+func (m MNBAlapkamatService) GetCurrentBaseRate(ctx context.Context) (MNBBaseRate, error) {
 	return m.GetCurrentCentralBankBaseRate(ctx)
 }
 
@@ -75,8 +78,8 @@ type MNBCentralBankBaseRates struct {
 	BaseRates []MNBBaseRate `xml:"BaseRate"`
 }
 
-func (m MNB) GetCentralBankBaseRate(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
-	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", strings.NewReader(m.GetCentralBankBaseRateXML(start, end)))
+func (m MNBAlapkamatService) GetCentralBankBaseRate(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
+	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCentralBankBaseRate", m.GetCentralBankBaseRateXML(start, end))
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +88,12 @@ func (m MNB) GetCentralBankBaseRate(ctx context.Context, start, end time.Time) (
 	return res.BaseRates, err
 }
 
-func (m MNB) GetBaseRates(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
+func (m MNBAlapkamatService) GetBaseRates(ctx context.Context, start, end time.Time) ([]MNBBaseRate, error) {
 	return m.GetCentralBankBaseRate(ctx, start, end)
+}
+
+type MNBArfolyamService struct {
+	MNB
 }
 
 /*
@@ -102,8 +109,8 @@ type MNBCurrencies struct {
 	Currencies []string `xml:"Currencies>Curr"`
 }
 
-func (m MNB) GetCurrencies(ctx context.Context) ([]string, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies", strings.NewReader(m.GetCurrenciesXML()))
+func (m MNBArfolyamService) GetCurrencies(ctx context.Context) ([]string, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies", m.GetCurrenciesXML())
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +136,8 @@ type Unit struct {
 	Unit     Double `xml:",chardata"`
 }
 
-func (m MNB) GetCurrencyUnits(ctx context.Context, currency string) ([]Unit, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencyUnits", strings.NewReader(m.GetCurrencyUnitsXML(currency)))
+func (m MNBArfolyamService) GetCurrencyUnits(ctx context.Context, currency string) ([]Unit, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencyUnits", m.GetCurrencyUnitsXML(currency))
 	if err != nil {
 		return nil, err
 	}
@@ -163,8 +170,8 @@ type Rate struct {
 	Rate     Double `xml:",chardata"`
 }
 
-func (m MNB) GetCurrentExchangeRates(ctx context.Context) (DayRates, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", strings.NewReader(m.GetCurrentExchangeRatesXML()))
+func (m MNBArfolyamService) GetCurrentExchangeRates(ctx context.Context) (DayRates, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", m.GetCurrentExchangeRatesXML())
 	if err != nil {
 		return DayRates{}, err
 	}
@@ -191,8 +198,8 @@ type DateInterval struct {
 	End   Date `xml:"enddate,attr"`
 }
 
-func (m MNB) GetDateIntervalResponse(ctx context.Context) (DateInterval, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", strings.NewReader(m.GetDateIntervalXML()))
+func (m MNBArfolyamService) GetDateIntervalResponse(ctx context.Context) (DateInterval, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", m.GetDateIntervalXML())
 	if err != nil {
 		return DateInterval{}, err
 	}
@@ -217,8 +224,8 @@ type MNBExchangeRatesQueryValues struct {
 	Currencies []string `xml:"Currencies>Curr"`
 }
 
-func (m MNB) GetInfo(ctx context.Context) (MNBExchangeRatesQueryValues, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetInfoXML()))
+func (m MNBArfolyamService) GetInfo(ctx context.Context) (MNBExchangeRatesQueryValues, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", m.GetInfoXML())
 	if err != nil {
 		return MNBExchangeRatesQueryValues{}, err
 	}
@@ -241,8 +248,8 @@ type MNBExchangeRates struct {
 	Days []DayRates `xml:"Day"`
 }
 
-func (m MNB) GetExchangeRates(ctx context.Context, start, end time.Time, currencies ...string) ([]DayRates, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", strings.NewReader(m.GetExchangeRatesXML(start, end, currencies...)))
+func (m MNBArfolyamService) GetExchangeRates(ctx context.Context, start, end time.Time, currencies ...string) ([]DayRates, error) {
+	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetExchangeRates", m.GetExchangeRatesXML(start, end, currencies...))
 	if err != nil {
 		return nil, err
 	}
@@ -303,28 +310,52 @@ func nextCharAfterStart(dec *xml.Decoder) ([]byte, error) {
 	}
 }
 
-func (m MNB) call(ctx context.Context, defaultURL, action string, body io.Reader) ([]byte, error) {
+func (m MNB) call(ctx context.Context, defaultURL, action string, body string) ([]byte, error) {
+	mLog := m.Log
 	URL := m.URL
 	if URL == "" {
 		URL = defaultURL
 	}
-	req, err := http.NewRequest("POST", URL, body)
+	reqS := xml.Header + body
+	if mLog != nil {
+	}
+	req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
 	if err != nil {
+		if mLog != nil {
+			mLog("msg", "request", "url", URL, "body", reqS)
+		}
 		return nil, err
 	}
 	req.Header.Set("SOAPAction", action)
+	req.Header.Set("Content-Type", "text/xml; charset=utf-8")
 	client := m.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
+		if mLog != nil {
+			mLog("msg", "do", "url", URL, "body", reqS, "error", err)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	b, err := FindBody(xml.NewDecoder(resp.Body))
+	if resp.StatusCode >= 400 {
+		if mLog != nil {
+			mLog("url", req.URL, "body", reqS, "status", resp.Status)
+		}
+		return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
+	}
+	var buf strings.Builder
+	b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
 	if err != nil {
-		return nil, err
+		if mLog != nil {
+			mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+		}
+		return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
+	}
+	if mLog != nil {
+		mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "data", string(b))
 	}
 	return append(make([]byte, 0, len(b)), b...), nil
 }

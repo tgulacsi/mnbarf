@@ -81,7 +81,7 @@
       <web:GetExchangeRates>
          {% if !start.IsZero() %}<web:startDate>{%= printDate(start) %}</web:startDate>{% endif %}
          {% if !end.IsZero() %}<web:endDate>{%= printDate(end) %}</web:endDate>{% endif %}
-         {% for _, curr := range currencies %}<web:currencyNames>{%s= curr %}</web:currencyNames>{% endfor %}
+         <web:currencyNames>{% for i, curr := range currencies %}{% if i != 0 %},{% endif %}{%s= curr %}{% endfor %}</web:currencyNames>
       </web:GetExchangeRates>
    </soapenv:Body>
 </soapenv:Envelope>

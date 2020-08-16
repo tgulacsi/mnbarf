@@ -22,13 +22,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"text/template"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pkg/errors"
 	"github.com/tgulacsi/mnbarf/mnb"
@@ -37,19 +37,18 @@ import (
 //go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
 //go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
 
-var Log = func(keyvals ...interface{}) error {
-	log.Println(keyvals...)
-	return nil
-}
+var logger = log.NewLogfmtLogger(os.Stderr)
+var Log = logger.Log
 
 func main() {
 	if err := Main(); err != nil {
-		log.Fatalf("%+v", err)
+		logger.Log("ERROR", fmt.Sprintf("%+v", err))
 	}
 }
 
 func Main() error {
-	var wsC, wsR mnb.MNB
+	var wsC mnb.MNBArfolyamService
+	var wsR mnb.MNBAlapkamatService
 	fs := flag.NewFlagSet("mnbarf", flag.ContinueOnError)
 	flagOutFormat := fs.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
 	flagVerbose := fs.Bool("v", false, "verbose logging")
@@ -58,7 +57,10 @@ func Main() error {
 	baserateCmd := ffcli.Command{
 		Name: "baserate",
 		Exec: func(ctx context.Context, args []string) error {
-			if len(args) > 1 {
+			if len(args) > 0 {
+				if len(args) == 1 {
+					args = append(args, "")
+				}
 				begin, end, err := parseDates(args[0], args[1])
 				if err != nil {
 					Log("msg", "parse dates", "error", err)
@@ -103,15 +105,14 @@ func Main() error {
 	ratesCmd := ffcli.Command{
 		Name: "rates",
 		Exec: func(ctx context.Context, args []string) error {
-			if len(args) == 0 || args[0] == "" {
-				return fmt.Errorf("currency is needed")
+			if len(args) < 3 {
+				return fmt.Errorf("begin, end and at least one currency is needed")
 			}
-			curr := args[0]
-			begin, end, err := parseDates(args[1], args[2])
+			begin, end, err := parseDates(args[0], args[1])
 			if err != nil {
 				return err
 			}
-			dayRates, err := wsC.GetExchangeRates(ctx, begin, end, curr)
+			dayRates, err := wsC.GetExchangeRates(ctx, begin, end, args[2:]...)
 			if err != nil {
 				Log("msg", "GetExchangeRates", "error", err)
 			}
@@ -183,14 +184,13 @@ Generate (and build) new webservice client
 	if err := app.Parse(os.Args[1:]); err != nil {
 		return err
 	}
+	var mnbLog func(...interface{}) error
 	if *flagVerbose {
-		mnb.Log = func(keyvals ...interface{}) error {
-			return Log(append(keyvals, "lib", "mnb")...)
-		}
+		mnbLog = log.With(logger, "lib", "mnb").Log
 	}
 
-	wsC = mnb.NewMNBArfolyamService(*flagURL)
-	wsR = mnb.NewMNBAlapkamatService(*flagURL)
+	wsC = mnb.NewMNBArfolyamService(*flagURL, nil, mnbLog)
+	wsR = mnb.NewMNBAlapkamatService(*flagURL, nil, mnbLog)
 
 	ctx, cancel := wrap(context.Background())
 	defer cancel()
