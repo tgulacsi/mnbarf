@@ -185,12 +185,11 @@ Generate (and build) new webservice client
     go generate && go install
 
 `,
-		Subcommands: append(append(append(append(append(make([]*ffcli.Command, 0, 16),
+		Subcommands: append(append(append(append(make([]*ffcli.Command, 0, 16),
 			&currentCmd, &infoCmd),
 			alias(&baserateCmd, "alapkamat", "kamat", "rate")...),
 			alias(&currenciesCmd, "currency", "curr")...),
 			alias(&ratesCmd, "rates")...),
-		),
 
 		Exec: func(ctx context.Context, args []string) error {
 			return currentCmd.Exec(ctx, args)

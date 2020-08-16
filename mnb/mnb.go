@@ -317,8 +317,6 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 		URL = defaultURL
 	}
 	reqS := xml.Header + body
-	if mLog != nil {
-	}
 	req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
 	if err != nil {
 		if mLog != nil {
