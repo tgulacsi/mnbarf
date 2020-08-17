@@ -51,7 +51,15 @@ type MNBBaseRate struct {
 }
 
 func (m MNBAlapkamatService) GetCurrentCentralBankBaseRate(ctx context.Context) (MNBBaseRate, error) {
-	b, err := m.call(ctx, AlapkamatURL, "http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCurrentCentralBankBaseRate", m.GetCurrentCentralBankBaseRateXML())
+	b, err := m.call(ctx,
+		AlapkamatURL,
+		"http://www.mnb.hu/webservices/MNBAlapkamatServiceSoap/GetCurrentCentralBankBaseRate",
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrentCentralBankBaseRate/>
+   </soapenv:Body>
+</soapenv:Envelope>`)
 	if err != nil {
 		return MNBBaseRate{}, err
 	}
@@ -110,7 +118,15 @@ type MNBCurrencies struct {
 }
 
 func (m MNBArfolyamService) GetCurrencies(ctx context.Context) ([]string, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies", m.GetCurrenciesXML())
+	b, err := m.call(ctx,
+		ArfolyamokURL,
+		"http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrencies",
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrencies/>
+   </soapenv:Body>
+</soapenv:Envelope>`)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +187,15 @@ type Rate struct {
 }
 
 func (m MNBArfolyamService) GetCurrentExchangeRates(ctx context.Context) (DayRates, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates", m.GetCurrentExchangeRatesXML())
+	b, err := m.call(ctx,
+		ArfolyamokURL,
+		"http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetCurrentExchangeRates",
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetCurrentExchangeRates/>
+   </soapenv:Body>
+</soapenv:Envelope>`)
 	if err != nil {
 		return DayRates{}, err
 	}
@@ -199,7 +223,15 @@ type DateInterval struct {
 }
 
 func (m MNBArfolyamService) GetDateIntervalResponse(ctx context.Context) (DateInterval, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval", m.GetDateIntervalXML())
+	b, err := m.call(ctx,
+		ArfolyamokURL,
+		"http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetDateInterval",
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetDateInterval/>
+   </soapenv:Body>
+</soapenv:Envelope>`)
 	if err != nil {
 		return DateInterval{}, err
 	}
@@ -225,7 +257,15 @@ type MNBExchangeRatesQueryValues struct {
 }
 
 func (m MNBArfolyamService) GetInfo(ctx context.Context) (MNBExchangeRatesQueryValues, error) {
-	b, err := m.call(ctx, ArfolyamokURL, "http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo", m.GetInfoXML())
+	b, err := m.call(ctx,
+		ArfolyamokURL,
+		"http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetInfo",
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:GetInfo/>
+   </soapenv:Body>
+</soapenv:Envelope>`)
 	if err != nil {
 		return MNBExchangeRatesQueryValues{}, err
 	}

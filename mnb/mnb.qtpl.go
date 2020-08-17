@@ -58,335 +58,170 @@ func printDate(t time.Time) string {
 }
 
 //line mnb/mnb.qtpl:9
-func (req MNB) StreamGetCurrentCentralBankBaseRateXML(qw422016 *qt422016.Writer) {
-//line mnb/mnb.qtpl:9
-	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetCurrentCentralBankBaseRate/></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:16
-}
-
-//line mnb/mnb.qtpl:16
-func (req MNB) WriteGetCurrentCentralBankBaseRateXML(qq422016 qtio422016.Writer) {
-//line mnb/mnb.qtpl:16
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:16
-	req.StreamGetCurrentCentralBankBaseRateXML(qw422016)
-//line mnb/mnb.qtpl:16
-	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:16
-}
-
-//line mnb/mnb.qtpl:16
-func (req MNB) GetCurrentCentralBankBaseRateXML() string {
-//line mnb/mnb.qtpl:16
-	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:16
-	req.WriteGetCurrentCentralBankBaseRateXML(qb422016)
-//line mnb/mnb.qtpl:16
-	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:16
-	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:16
-	return qs422016
-//line mnb/mnb.qtpl:16
-}
-
-//line mnb/mnb.qtpl:18
 func (req MNB) StreamGetCentralBankBaseRateXML(qw422016 *qt422016.Writer, start, end time.Time) {
-//line mnb/mnb.qtpl:18
+//line mnb/mnb.qtpl:9
 	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetCentralBankBaseRate>`)
-//line mnb/mnb.qtpl:23
+//line mnb/mnb.qtpl:14
 	if !start.IsZero() {
-//line mnb/mnb.qtpl:23
+//line mnb/mnb.qtpl:14
 		qw422016.N().S(`<web:startDate>`)
-//line mnb/mnb.qtpl:23
+//line mnb/mnb.qtpl:14
 		streamprintDate(qw422016, start)
-//line mnb/mnb.qtpl:23
+//line mnb/mnb.qtpl:14
 		qw422016.N().S(`</web:startDate>`)
-//line mnb/mnb.qtpl:23
+//line mnb/mnb.qtpl:14
 	}
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 	if !end.IsZero() {
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 		qw422016.N().S(`<web:endDate>`)
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 		streamprintDate(qw422016, end)
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 		qw422016.N().S(`</web:endDate>`)
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 	}
-//line mnb/mnb.qtpl:24
+//line mnb/mnb.qtpl:15
 	qw422016.N().S(`</web:GetCentralBankBaseRate></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 }
 
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 func (req MNB) WriteGetCentralBankBaseRateXML(qq422016 qtio422016.Writer, start, end time.Time) {
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	req.StreamGetCentralBankBaseRateXML(qw422016, start, end)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 }
 
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 func (req MNB) GetCentralBankBaseRateXML(start, end time.Time) string {
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	req.WriteGetCentralBankBaseRateXML(qb422016, start, end)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 	return qs422016
-//line mnb/mnb.qtpl:28
+//line mnb/mnb.qtpl:19
 }
 
-//line mnb/mnb.qtpl:30
-func (req MNB) StreamGetCurrenciesXML(qw422016 *qt422016.Writer) {
-//line mnb/mnb.qtpl:30
-	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetCurrencies/></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:37
-}
-
-//line mnb/mnb.qtpl:37
-func (req MNB) WriteGetCurrenciesXML(qq422016 qtio422016.Writer) {
-//line mnb/mnb.qtpl:37
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:37
-	req.StreamGetCurrenciesXML(qw422016)
-//line mnb/mnb.qtpl:37
-	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:37
-}
-
-//line mnb/mnb.qtpl:37
-func (req MNB) GetCurrenciesXML() string {
-//line mnb/mnb.qtpl:37
-	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:37
-	req.WriteGetCurrenciesXML(qb422016)
-//line mnb/mnb.qtpl:37
-	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:37
-	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:37
-	return qs422016
-//line mnb/mnb.qtpl:37
-}
-
-//line mnb/mnb.qtpl:39
+//line mnb/mnb.qtpl:21
 func (req MNB) StreamGetCurrencyUnitsXML(qw422016 *qt422016.Writer, currencies ...string) {
-//line mnb/mnb.qtpl:39
+//line mnb/mnb.qtpl:21
 	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetCurrencyUnits>`)
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 	for _, curr := range currencies {
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 		qw422016.N().S(`<web:currencyNames>`)
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 		qw422016.N().S(curr)
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 		qw422016.N().S(`</web:currencyNames>`)
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 	}
-//line mnb/mnb.qtpl:44
+//line mnb/mnb.qtpl:26
 	qw422016.N().S(`</web:GetCurrencyUnits></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 }
 
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 func (req MNB) WriteGetCurrencyUnitsXML(qq422016 qtio422016.Writer, currencies ...string) {
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	req.StreamGetCurrencyUnitsXML(qw422016, currencies...)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 }
 
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 func (req MNB) GetCurrencyUnitsXML(currencies ...string) string {
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	req.WriteGetCurrencyUnitsXML(qb422016, currencies...)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 	return qs422016
-//line mnb/mnb.qtpl:48
+//line mnb/mnb.qtpl:30
 }
 
-//line mnb/mnb.qtpl:50
-func (req MNB) StreamGetCurrentExchangeRatesXML(qw422016 *qt422016.Writer) {
-//line mnb/mnb.qtpl:50
-	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetCurrentExchangeRates/></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:57
-}
-
-//line mnb/mnb.qtpl:57
-func (req MNB) WriteGetCurrentExchangeRatesXML(qq422016 qtio422016.Writer) {
-//line mnb/mnb.qtpl:57
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:57
-	req.StreamGetCurrentExchangeRatesXML(qw422016)
-//line mnb/mnb.qtpl:57
-	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:57
-}
-
-//line mnb/mnb.qtpl:57
-func (req MNB) GetCurrentExchangeRatesXML() string {
-//line mnb/mnb.qtpl:57
-	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:57
-	req.WriteGetCurrentExchangeRatesXML(qb422016)
-//line mnb/mnb.qtpl:57
-	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:57
-	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:57
-	return qs422016
-//line mnb/mnb.qtpl:57
-}
-
-//line mnb/mnb.qtpl:59
-func (req MNB) StreamGetDateIntervalXML(qw422016 *qt422016.Writer) {
-//line mnb/mnb.qtpl:59
-	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetDateInterval/></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:66
-}
-
-//line mnb/mnb.qtpl:66
-func (req MNB) WriteGetDateIntervalXML(qq422016 qtio422016.Writer) {
-//line mnb/mnb.qtpl:66
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:66
-	req.StreamGetDateIntervalXML(qw422016)
-//line mnb/mnb.qtpl:66
-	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:66
-}
-
-//line mnb/mnb.qtpl:66
-func (req MNB) GetDateIntervalXML() string {
-//line mnb/mnb.qtpl:66
-	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:66
-	req.WriteGetDateIntervalXML(qb422016)
-//line mnb/mnb.qtpl:66
-	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:66
-	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:66
-	return qs422016
-//line mnb/mnb.qtpl:66
-}
-
-//line mnb/mnb.qtpl:68
-func (req MNB) StreamGetInfoXML(qw422016 *qt422016.Writer) {
-//line mnb/mnb.qtpl:68
-	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetInfo/></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:75
-}
-
-//line mnb/mnb.qtpl:75
-func (req MNB) WriteGetInfoXML(qq422016 qtio422016.Writer) {
-//line mnb/mnb.qtpl:75
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:75
-	req.StreamGetInfoXML(qw422016)
-//line mnb/mnb.qtpl:75
-	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:75
-}
-
-//line mnb/mnb.qtpl:75
-func (req MNB) GetInfoXML() string {
-//line mnb/mnb.qtpl:75
-	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:75
-	req.WriteGetInfoXML(qb422016)
-//line mnb/mnb.qtpl:75
-	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:75
-	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:75
-	return qs422016
-//line mnb/mnb.qtpl:75
-}
-
-//line mnb/mnb.qtpl:77
+//line mnb/mnb.qtpl:32
 func (req MNB) StreamGetExchangeRatesXML(qw422016 *qt422016.Writer, start, end time.Time, currencies ...string) {
-//line mnb/mnb.qtpl:77
+//line mnb/mnb.qtpl:32
 	qw422016.N().S(`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.mnb.hu/webservices/"><soapenv:Header/><soapenv:Body><web:GetExchangeRates>`)
-//line mnb/mnb.qtpl:82
+//line mnb/mnb.qtpl:37
 	if !start.IsZero() {
-//line mnb/mnb.qtpl:82
+//line mnb/mnb.qtpl:37
 		qw422016.N().S(`<web:startDate>`)
-//line mnb/mnb.qtpl:82
+//line mnb/mnb.qtpl:37
 		streamprintDate(qw422016, start)
-//line mnb/mnb.qtpl:82
+//line mnb/mnb.qtpl:37
 		qw422016.N().S(`</web:startDate>`)
-//line mnb/mnb.qtpl:82
+//line mnb/mnb.qtpl:37
 	}
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 	if !end.IsZero() {
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 		qw422016.N().S(`<web:endDate>`)
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 		streamprintDate(qw422016, end)
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 		qw422016.N().S(`</web:endDate>`)
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 	}
-//line mnb/mnb.qtpl:83
+//line mnb/mnb.qtpl:38
 	qw422016.N().S(`<web:currencyNames>`)
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 	for i, curr := range currencies {
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 		if i != 0 {
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 			qw422016.N().S(`,`)
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 		}
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 		qw422016.N().S(curr)
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 	}
-//line mnb/mnb.qtpl:84
+//line mnb/mnb.qtpl:39
 	qw422016.N().S(`</web:currencyNames></web:GetExchangeRates></soapenv:Body></soapenv:Envelope>`)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 }
 
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 func (req MNB) WriteGetExchangeRatesXML(qq422016 qtio422016.Writer, start, end time.Time, currencies ...string) {
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	req.StreamGetExchangeRatesXML(qw422016, start, end, currencies...)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	qt422016.ReleaseWriter(qw422016)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 }
 
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 func (req MNB) GetExchangeRatesXML(start, end time.Time, currencies ...string) string {
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	qb422016 := qt422016.AcquireByteBuffer()
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	req.WriteGetExchangeRatesXML(qb422016, start, end, currencies...)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	qs422016 := string(qb422016.B)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	qt422016.ReleaseByteBuffer(qb422016)
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 	return qs422016
-//line mnb/mnb.qtpl:88
+//line mnb/mnb.qtpl:43
 }
