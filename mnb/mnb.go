@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Tamás Gulácsi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package mnb
 
 import (
@@ -8,6 +24,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 const (
@@ -16,16 +34,30 @@ const (
 )
 
 func NewMNBArfolyamService(URL string, client *http.Client, Log func(...interface{}) error) MNBArfolyamService {
-	return MNBArfolyamService{MNB: MNB{URL: URL, Client: client, Log: Log}}
+	return MNBArfolyamService{MNB: NewMNB(URL, client, Log)}
 }
 func NewMNBAlapkamatService(URL string, client *http.Client, Log func(...interface{}) error) MNBAlapkamatService {
-	return MNBAlapkamatService{MNB: MNB{URL: URL, Client: client, Log: Log}}
+	return MNBAlapkamatService{MNB: NewMNB(URL, client, Log)}
+}
+func NewMNB(URL string, client *http.Client, Log func(...interface{}) error) MNB {
+	cl := retryablehttp.NewClient()
+	cl.RetryWaitMin, cl.RetryWaitMax = 100*time.Millisecond, time.Second
+	cl.Backoff = retryablehttp.LinearJitterBackoff
+	if Log == nil {
+		cl.Logger = nilLogger{}
+	} else {
+		cl.Logger = logLogger{Log: Log}
+	}
+	if client != nil {
+		cl.HTTPClient = client
+	}
+	return MNB{URL: URL, Log: Log, Client: cl}
 }
 
 type MNB struct {
 	URL string
 	Log func(...interface{}) error
-	*http.Client
+	*retryablehttp.Client
 }
 type MNBAlapkamatService struct {
 	MNB
@@ -357,7 +389,7 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 		URL = defaultURL
 	}
 	reqS := xml.Header + body
-	req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
+	req, err := retryablehttp.NewRequest("POST", URL, []byte(reqS))
 	if err != nil {
 		if mLog != nil {
 			mLog("msg", "request", "url", URL, "body", reqS)
@@ -368,9 +400,11 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	req.Header.Set("Content-Type", "text/xml; charset=utf-8")
 	client := m.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = retryablehttp.NewClient()
 	}
+	start := time.Now()
 	resp, err := client.Do(req.WithContext(ctx))
+	dur := time.Since(start)
 	if err != nil {
 		if mLog != nil {
 			mLog("msg", "do", "url", URL, "body", reqS, "error", err)
@@ -393,7 +427,33 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 		return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
 	}
 	if mLog != nil {
-		mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "data", string(b))
+		mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
 	}
 	return append(make([]byte, 0, len(b)), b...), nil
+}
+
+type nilLogger struct{}
+
+func (nilLogger) Printf(string, ...interface{}) {}
+
+type logLogger struct{ Log func(...interface{}) error }
+
+func (lgr logLogger) Printf(pat string, args ...interface{}) { lgr.Log(fmt.Sprintf(pat, args...)) }
+func (lgr logLogger) msg(lvl, msg string, keysAndValues ...interface{}) {
+	lgr.Log(append(append(make([]interface{}, 0, 4+len(keysAndValues)), "msg", msg, "lvl", lvl), keysAndValues...)...)
+}
+func (lgr logLogger) Error(msg string, keysAndValues ...interface{}) {
+	lgr.msg("ERROR", msg, keysAndValues...)
+}
+
+func (lgr logLogger) Info(msg string, keysAndValues ...interface{}) {
+	lgr.msg("INFO", msg, keysAndValues...)
+}
+
+func (lgr logLogger) Debug(msg string, keysAndValues ...interface{}) {
+	lgr.msg("DEBUG", msg, keysAndValues...)
+}
+
+func (lgr logLogger) Warn(msg string, keysAndValues ...interface{}) {
+	lgr.msg("WARN", msg, keysAndValues...)
 }
