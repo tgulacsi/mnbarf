@@ -392,7 +392,7 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	req, err := retryablehttp.NewRequest("POST", URL, []byte(reqS))
 	if err != nil {
 		if mLog != nil {
-			mLog("msg", "request", "url", URL, "body", reqS)
+			_ = mLog("msg", "request", "url", URL, "body", reqS)
 		}
 		return nil, err
 	}
@@ -407,14 +407,14 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	dur := time.Since(start)
 	if err != nil {
 		if mLog != nil {
-			mLog("msg", "do", "url", URL, "body", reqS, "error", err)
+			_ = mLog("msg", "do", "url", URL, "body", reqS, "error", err)
 		}
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		if mLog != nil {
-			mLog("url", req.URL, "body", reqS, "status", resp.Status)
+			_ = mLog("url", req.URL, "body", reqS, "status", resp.Status)
 		}
 		return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
 	}
@@ -422,12 +422,12 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
 	if err != nil {
 		if mLog != nil {
-			mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+			_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
 		}
 		return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
 	}
 	if mLog != nil {
-		mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
+		_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
 	}
 	return append(make([]byte, 0, len(b)), b...), nil
 }
@@ -438,9 +438,9 @@ func (nilLogger) Printf(string, ...interface{}) {}
 
 type logLogger struct{ Log func(...interface{}) error }
 
-func (lgr logLogger) Printf(pat string, args ...interface{}) { lgr.Log(fmt.Sprintf(pat, args...)) }
+func (lgr logLogger) Printf(pat string, args ...interface{}) { _ = lgr.Log(fmt.Sprintf(pat, args...)) }
 func (lgr logLogger) msg(lvl, msg string, keysAndValues ...interface{}) {
-	lgr.Log(append(append(make([]interface{}, 0, 4+len(keysAndValues)), "msg", msg, "lvl", lvl), keysAndValues...)...)
+	_ = lgr.Log(append(append(make([]interface{}, 0, 4+len(keysAndValues)), "msg", msg, "lvl", lvl), keysAndValues...)...)
 }
 func (lgr logLogger) Error(msg string, keysAndValues ...interface{}) {
 	lgr.msg("ERROR", msg, keysAndValues...)
