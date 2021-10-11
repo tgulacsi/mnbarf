@@ -30,7 +30,6 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/peterbourgon/ff/v3/ffcli"
-	"github.com/pkg/errors"
 	"github.com/tgulacsi/mnbarf/mnb"
 )
 
@@ -223,7 +222,7 @@ func parseDates(beginS, endS string) (begin, end time.Time, err error) {
 	}
 	begin, err = time.Parse("2006-01-02", beginS)
 	if err != nil {
-		err = errors.Wrapf(err, "arg="+beginS)
+		err = fmt.Errorf("arg=%q: %w", beginS, err)
 		return
 	}
 	if endS == "" {
@@ -232,7 +231,7 @@ func parseDates(beginS, endS string) (begin, end time.Time, err error) {
 	}
 	end, err = time.Parse("2006-01-02", endS)
 	if err != nil {
-		err = errors.Wrapf(err, "arg="+endS)
+		err = fmt.Errorf("arg=%q: %w", endS, err)
 	}
 	return
 }

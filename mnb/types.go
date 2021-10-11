@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Tamás Gulácsi
+Copyright 2019, 2021 Tamás Gulácsi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@ package mnb
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	"github.com/cockroachdb/apd/v2"
-	"github.com/pkg/errors"
 )
 
 type Date time.Time
@@ -67,7 +67,7 @@ func (d *Double) UnmarshalText(data []byte) error {
 		_, _, err = d.Decimal.SetString(string(data))
 	}
 	if err != nil {
-		return errors.Wrap(err, string(data))
+		return fmt.Errorf("%q: %w", string(data), err)
 	}
 	return nil
 }
