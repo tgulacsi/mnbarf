@@ -3,7 +3,7 @@ module github.com/tgulacsi/mnbarf
 go 1.17
 
 require (
-	github.com/cockroachdb/apd/v2 v2.0.2
+	github.com/cockroachdb/apd/v3 v3.0.0
 	github.com/go-kit/log v0.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/peterbourgon/ff/v3 v3.1.2
@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/cockroachdb/apd/v3 v3.0.0 // indirect
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
