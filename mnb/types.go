@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cockroachdb/apd/v2"
+	"github.com/cockroachdb/apd/v3"
 )
 
 type Date time.Time
@@ -45,6 +45,15 @@ func (d *Date) UnmarshalText(data []byte) error {
 
 type Double struct {
 	*apd.Decimal
+}
+
+func NewDouble(coeff int64, exponent int32) Double {
+	return Double{Decimal: apd.New(coeff, exponent)}
+}
+func NewDoubleFromString(s string) (Double, error) {
+	var d apd.Decimal
+	err := d.Scan(s)
+	return Double{Decimal: &d}, err
 }
 
 func (d Double) String() string {

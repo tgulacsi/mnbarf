@@ -50,7 +50,7 @@ func Main() error {
 	var wsC mnb.MNBArfolyamService
 	var wsR mnb.MNBAlapkamatService
 	fs := flag.NewFlagSet("mnbarf", flag.ContinueOnError)
-	flagOutFormat := fs.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}};{{.Currency}};{{.Unit}};{{.Rate}}{{print "\n"}})`)
+	flagOutFormat := fs.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}},{{.Currency}},{{.Unit}},{{.Rate}}{{print "\n"}})`)
 	flagVerbose := fs.Bool("v", false, "verbose logging")
 	flagURL := fs.String("url", "", "URL to use")
 
@@ -237,6 +237,11 @@ func parseDates(beginS, endS string) (begin, end time.Time, err error) {
 }
 
 func printDayRates(days []mnb.DayRates, outFormat string) error {
+	for i := range days {
+		days[i].Rates = append(days[i].Rates, mnb.Rate{
+			Currency: "HUF", Unit: 1, Rate: mnb.NewDouble(1, 0),
+		})
+	}
 	type rowStruct struct {
 		Day      string
 		Currency string
@@ -249,18 +254,17 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 
 	switch outFormat {
 	case "csv":
+		fmt.Println("date,currency,unit,rate(HUF)")
 		for _, day := range days {
 			dS := day.Day.String()
 			for _, rate := range day.Rates {
-				fmt.Fprintf(bw, dS+";"+rate.Currency+";")
-				fmt.Fprintf(bw, "%d;%s\n", rate.Unit, rate.Rate.String())
+				fmt.Fprintf(bw, "%s,%s,%d,%s\n", dS, rate.Currency, rate.Unit, rate.Rate.String())
 			}
 		}
 
 	case "json":
 		enc := json.NewEncoder(bw)
-
-		row := rowStruct{}
+		var row rowStruct
 		_, _ = bw.WriteString("[")
 		for _, day := range days {
 			row.Day = day.Day.String()
@@ -280,7 +284,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 			_ = Log("msg", "template parse", "error", err)
 			os.Exit(4)
 		}
-		row := rowStruct{}
+		var row rowStruct
 		_, _ = bw.WriteString("[")
 		for _, day := range days {
 			row.Day = day.Day.String()

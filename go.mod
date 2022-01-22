@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/cockroachdb/apd/v3 v3.0.0 // indirect
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
