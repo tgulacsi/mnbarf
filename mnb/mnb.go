@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rogpeppe/retry"
 )
 
 const (
@@ -40,24 +40,13 @@ func NewMNBAlapkamatService(URL string, client *http.Client, Log func(...interfa
 	return MNBAlapkamatService{MNB: NewMNB(URL, client, Log)}
 }
 func NewMNB(URL string, client *http.Client, Log func(...interface{}) error) MNB {
-	cl := retryablehttp.NewClient()
-	cl.RetryWaitMin, cl.RetryWaitMax = 100*time.Millisecond, time.Second
-	cl.Backoff = retryablehttp.LinearJitterBackoff
-	if Log == nil {
-		cl.Logger = nilLogger{}
-	} else {
-		cl.Logger = logLogger{Log: Log}
-	}
-	if client != nil {
-		cl.HTTPClient = client
-	}
-	return MNB{URL: URL, Log: Log, Client: cl}
+	return MNB{URL: URL, Log: Log, Client: client}
 }
 
 type MNB struct {
 	URL string
 	Log func(...interface{}) error
-	*retryablehttp.Client
+	*http.Client
 }
 type MNBAlapkamatService struct {
 	MNB
@@ -382,6 +371,13 @@ func nextCharAfterStart(dec *xml.Decoder) ([]byte, error) {
 	}
 }
 
+var retryStrategy = retry.Strategy{
+	Delay:       100 * time.Millisecond,
+	MaxDelay:    5 * time.Second,
+	MaxDuration: 30 * time.Second,
+	Factor:      2,
+}
+
 func (m MNB) call(ctx context.Context, defaultURL, action string, body string) ([]byte, error) {
 	mLog := m.Log
 	URL := m.URL
@@ -389,47 +385,70 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 		URL = defaultURL
 	}
 	reqS := xml.Header + body
-	req, err := retryablehttp.NewRequest("POST", URL, []byte(reqS))
-	if err != nil {
-		if mLog != nil {
-			_ = mLog("msg", "request", "url", URL, "body", reqS)
-		}
-		return nil, err
-	}
-	req.Header.Set("SOAPAction", action)
-	req.Header.Set("Content-Type", "text/xml; charset=utf-8")
 	client := m.Client
 	if client == nil {
-		client = retryablehttp.NewClient()
+		client = http.DefaultClient
 	}
-	start := time.Now()
-	resp, err := client.Do(req.WithContext(ctx))
-	dur := time.Since(start)
-	if err != nil {
-		if mLog != nil {
-			_ = mLog("msg", "do", "url", URL, "body", reqS, "error", err)
-		}
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		if mLog != nil {
-			_ = mLog("url", req.URL, "body", reqS, "status", resp.Status)
-		}
-		return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
-	}
+
 	var buf strings.Builder
-	b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
-	if err != nil {
-		if mLog != nil {
-			_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+	var firstErr error
+	for iter := retryStrategy.Start(); ; {
+		req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
+		if err != nil {
+			if mLog != nil {
+				_ = mLog("msg", "request", "url", URL, "body", reqS)
+			}
+			return nil, err
 		}
-		return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
+		req.GetBody = func() (io.ReadCloser, error) {
+			return struct {
+				io.Reader
+				io.Closer
+			}{strings.NewReader(reqS), io.NopCloser(nil)}, nil
+		}
+		req.Header.Set("SOAPAction", action)
+		req.Header.Set("Content-Type", "text/xml; charset=utf-8")
+
+		b, err := func() ([]byte, error) {
+			start := time.Now()
+			resp, err := client.Do(req.WithContext(ctx))
+			dur := time.Since(start)
+			if err != nil {
+				if mLog != nil {
+					_ = mLog("msg", "do", "url", URL, "body", reqS, "error", err)
+				}
+				return nil, err
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode >= 400 {
+				if mLog != nil {
+					_ = mLog("url", req.URL, "body", reqS, "status", resp.Status)
+				}
+				return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
+			}
+			buf.Reset()
+			b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
+			if err != nil {
+				if mLog != nil {
+					_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+				}
+				return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
+			}
+			if mLog != nil {
+				_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
+			}
+			return append(make([]byte, 0, len(b)), b...), nil
+		}()
+		if err == nil {
+			return b, nil
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+		if !iter.Next(ctx.Done()) {
+			return nil, firstErr
+		}
 	}
-	if mLog != nil {
-		_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
-	}
-	return append(make([]byte, 0, len(b)), b...), nil
 }
 
 type nilLogger struct{}
