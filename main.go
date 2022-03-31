@@ -28,20 +28,22 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/go-kit/log"
+	"github.com/go-logr/logr"
+	"github.com/go-logr/zerologr"
 	"github.com/peterbourgon/ff/v3/ffcli"
+	"github.com/rs/zerolog"
 	"github.com/tgulacsi/mnbarf/mnb"
 )
 
 //go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
 //go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
 
-var logger = log.NewLogfmtLogger(os.Stderr)
-var Log = logger.Log
+var zl = zerolog.New(os.Stderr)
+var logger = zerologr.New(&zl)
 
 func main() {
 	if err := Main(); err != nil {
-		_ = logger.Log("ERROR", fmt.Sprintf("%+v", err))
+		logger.Error(err, "ERROR")
 		os.Exit(1)
 	}
 }
@@ -63,12 +65,12 @@ func Main() error {
 				}
 				begin, end, err := parseDates(args[0], args[1])
 				if err != nil {
-					_ = Log("msg", "parse dates", "error", err)
+					logger.Info("parse dates", "error", err)
 					return err
 				}
 				rates, err := wsR.GetBaseRates(ctx, begin, end)
 				if err != nil {
-					_ = Log("msg", "GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
+					logger.Info("GetCentralBankBaseRates", "begin", begin, "end", end, "error", err)
 					return err
 				}
 				//Log("msg","GetCentralBankBaseRates", "begin", begin, "end", end, "rates", rates)
@@ -76,7 +78,7 @@ func Main() error {
 			}
 			rate, err := wsR.GetCurrentBaseRate(ctx)
 			if err != nil {
-				_ = Log("msg", "GetCurrentCentralBankBaseRate", "error", err)
+				logger.Info("GetCurrentCentralBankBaseRate", "error", err)
 				return err
 			}
 			//Log("msg","GetCurrentCentralBankBaseRate", "rate", rate)
@@ -90,7 +92,7 @@ func Main() error {
 		Exec: func(ctx context.Context, args []string) error {
 			currencies, err := wsC.GetCurrencies(ctx)
 			if err != nil {
-				_ = Log("msg", "GetCurrencies", "error", err)
+				logger.Info("GetCurrencies", "error", err)
 				return err
 			}
 			//Log("msg","GetCurrencies", "currencies", currencies)
@@ -113,7 +115,7 @@ func Main() error {
 			}
 			dayRates, err := wsC.GetExchangeRates(ctx, begin, end, args[2:]...)
 			if err != nil {
-				_ = Log("msg", "GetExchangeRates", "error", err)
+				logger.Info("GetExchangeRates", "error", err)
 			}
 			//Log("msg","GetExchangeRates", "dayRates", dayRates)
 			if printErr := printDayRates(dayRates, *flagOutFormat); printErr != nil && err == nil {
@@ -128,7 +130,7 @@ func Main() error {
 			// current
 			day, err := wsC.GetCurrentExchangeRates(ctx)
 			if err != nil {
-				_ = Log("msg", "GetCurrentExchangeRates", "error", err)
+				logger.Info("GetCurrentExchangeRates", "error", err)
 			}
 			//Log("msg","GetCurrentExchangeRates", "day", day.Day, "rates", day.Rates)
 			if printErr := printDayRates([]mnb.DayRates{day}, *flagOutFormat); printErr != nil && err == nil {
@@ -142,7 +144,7 @@ func Main() error {
 		Exec: func(ctx context.Context, args []string) error {
 			info, err := wsC.GetInfo(ctx)
 			if err != nil {
-				_ = Log("msg", "GetInfo", "error", err)
+				logger.Info("GetInfo", "error", err)
 				return err
 			}
 			fmt.Printf("%s - %s:\n", info.FirstDate, info.LastDate)
@@ -201,13 +203,13 @@ Generate (and build) new webservice client
 	if err := app.Parse(os.Args[1:]); err != nil {
 		return err
 	}
-	var mnbLog func(...interface{}) error
+	mnbLogger := logr.Discard()
 	if *flagVerbose {
-		mnbLog = log.With(logger, "lib", "mnb").Log
+		mnbLogger = logger.WithValues("lib", "mnb")
 	}
 
-	wsC = mnb.NewMNBArfolyamService(*flagURL, nil, mnbLog)
-	wsR = mnb.NewMNBAlapkamatService(*flagURL, nil, mnbLog)
+	wsC = mnb.NewMNBArfolyamService(*flagURL, nil, mnbLogger)
+	wsR = mnb.NewMNBAlapkamatService(*flagURL, nil, mnbLogger)
 
 	ctx, cancel := wrap(context.Background())
 	defer cancel()
@@ -271,7 +273,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 			for _, rate := range day.Rates {
 				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
 				if err := enc.Encode(row); err != nil {
-					_ = Log("msg", "encoding", "row", row, "error", err)
+					logger.Info("encoding", "row", row, "error", err)
 					return err
 				}
 			}
@@ -281,7 +283,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 	default: // template
 		tmpl, err := template.New("row").Parse(outFormat)
 		if err != nil {
-			_ = Log("msg", "template parse", "error", err)
+			logger.Info("template parse", "error", err)
 			os.Exit(4)
 		}
 		var row rowStruct
@@ -291,7 +293,7 @@ func printDayRates(days []mnb.DayRates, outFormat string) error {
 			for _, rate := range day.Rates {
 				row.Currency, row.Unit, row.Rate = rate.Currency, rate.Unit, rate.Rate.String()
 				if err := tmpl.Execute(bw, row); err != nil {
-					_ = Log("msg", "encoding", "row", row, "error", err)
+					logger.Info("encoding", "row", row, "error", err)
 					return err
 				}
 			}
@@ -316,7 +318,7 @@ func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
 		_, _ = bw.WriteString("[")
 		for _, rate := range rates {
 			if err := enc.Encode(rate); err != nil {
-				_ = Log("msg", "encoding", "rate", rate, "error", err)
+				logger.Info("encoding", "rate", rate, "error", err)
 				return err
 			}
 		}
@@ -325,13 +327,13 @@ func printBaseRates(rates []mnb.MNBBaseRate, outFormat string) error {
 	default: // template
 		tmpl, err := template.New("row").Parse(outFormat)
 		if err != nil {
-			_ = Log("msg", "template parse", "error", err)
+			logger.Info("template parse", "error", err)
 			os.Exit(4)
 		}
 		_, _ = bw.WriteString("[")
 		for _, rate := range rates {
 			if err := tmpl.Execute(bw, rate); err != nil {
-				_ = Log("msg", "encoding", "rate", rate, "error", err)
+				logger.Info("encoding", "rate", rate, "error", err)
 				return err
 			}
 		}

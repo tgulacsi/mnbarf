@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/rogpeppe/retry"
 )
 
@@ -33,19 +34,19 @@ const (
 	AlapkamatURL  = "http://www.mnb.hu/alapkamat.asmx"
 )
 
-func NewMNBArfolyamService(URL string, client *http.Client, Log func(...interface{}) error) MNBArfolyamService {
-	return MNBArfolyamService{MNB: NewMNB(URL, client, Log)}
+func NewMNBArfolyamService(URL string, client *http.Client, logger logr.Logger) MNBArfolyamService {
+	return MNBArfolyamService{MNB: NewMNB(URL, client, logger)}
 }
-func NewMNBAlapkamatService(URL string, client *http.Client, Log func(...interface{}) error) MNBAlapkamatService {
-	return MNBAlapkamatService{MNB: NewMNB(URL, client, Log)}
+func NewMNBAlapkamatService(URL string, client *http.Client, logger logr.Logger) MNBAlapkamatService {
+	return MNBAlapkamatService{MNB: NewMNB(URL, client, logger)}
 }
-func NewMNB(URL string, client *http.Client, Log func(...interface{}) error) MNB {
-	return MNB{URL: URL, Log: Log, Client: client}
+func NewMNB(URL string, client *http.Client, logger logr.Logger) MNB {
+	return MNB{URL: URL, Logger: logger, Client: client}
 }
 
 type MNB struct {
 	URL string
-	Log func(...interface{}) error
+	logr.Logger
 	*http.Client
 }
 type MNBAlapkamatService struct {
@@ -379,7 +380,6 @@ var retryStrategy = retry.Strategy{
 }
 
 func (m MNB) call(ctx context.Context, defaultURL, action string, body string) ([]byte, error) {
-	mLog := m.Log
 	URL := m.URL
 	if URL == "" {
 		URL = defaultURL
@@ -395,8 +395,8 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	for iter := retryStrategy.Start(); ; {
 		req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
 		if err != nil {
-			if mLog != nil {
-				_ = mLog("msg", "request", "url", URL, "body", reqS)
+			if m.Logger.Enabled() {
+				m.Logger.Info("request", "url", URL, "body", reqS)
 			}
 			return nil, err
 		}
@@ -414,28 +414,28 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 			resp, err := client.Do(req.WithContext(ctx))
 			dur := time.Since(start)
 			if err != nil {
-				if mLog != nil {
-					_ = mLog("msg", "do", "url", URL, "body", reqS, "error", err)
+				if m.Logger.Enabled() {
+					m.Logger.Info("do", "url", URL, "body", reqS, "error", err)
 				}
 				return nil, err
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 400 {
-				if mLog != nil {
-					_ = mLog("url", req.URL, "body", reqS, "status", resp.Status)
+				if m.Logger.Enabled() {
+					m.Logger.Info(req.URL.String(), "body", reqS, "status", resp.Status)
 				}
 				return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
 			}
 			buf.Reset()
 			b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
 			if err != nil {
-				if mLog != nil {
-					_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+				if m.Logger.Enabled() {
+					m.Logger.Info("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
 				}
 				return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
 			}
-			if mLog != nil {
-				_ = mLog("msg", "FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
+			if m.Logger.Enabled() {
+				m.Logger.Info("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
 			}
 			return append(make([]byte, 0, len(b)), b...), nil
 		}()
