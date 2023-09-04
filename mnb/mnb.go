@@ -21,11 +21,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/rogpeppe/retry"
 )
 
@@ -34,19 +34,22 @@ const (
 	AlapkamatURL  = "http://www.mnb.hu/alapkamat.asmx"
 )
 
-func NewMNBArfolyamService(URL string, client *http.Client, logger logr.Logger) MNBArfolyamService {
+func NewMNBArfolyamService(URL string, client *http.Client, logger *slog.Logger) MNBArfolyamService {
 	return MNBArfolyamService{MNB: NewMNB(URL, client, logger)}
 }
-func NewMNBAlapkamatService(URL string, client *http.Client, logger logr.Logger) MNBAlapkamatService {
+func NewMNBAlapkamatService(URL string, client *http.Client, logger *slog.Logger) MNBAlapkamatService {
 	return MNBAlapkamatService{MNB: NewMNB(URL, client, logger)}
 }
-func NewMNB(URL string, client *http.Client, logger logr.Logger) MNB {
+func NewMNB(URL string, client *http.Client, logger *slog.Logger) MNB {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return MNB{URL: URL, Logger: logger, Client: client}
 }
 
 type MNB struct {
 	URL string
-	logr.Logger
+	*slog.Logger
 	*http.Client
 }
 type MNBAlapkamatService struct {
@@ -128,11 +131,13 @@ type MNBArfolyamService struct {
 
 /*
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-   <s:Body>
-      <GetCurrenciesResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-         <GetCurrenciesResult><![CDATA[<MNBCurrencies><Currencies><Curr>HUF</Curr><Curr>EUR</Curr><Curr>AUD</Curr><Curr>BGN</Curr><Curr>BRL</Curr><Curr>CAD</Curr><Curr>CHF</Curr><Curr>CNY</Curr><Curr>CZK</Curr><Curr>DKK</Curr><Curr>GBP</Curr><Curr>HKD</Curr><Curr>HRK</Curr><Curr>IDR</Curr><Curr>ILS</Curr><Curr>INR</Curr><Curr>ISK</Curr><Curr>JPY</Curr><Curr>KRW</Curr><Curr>MXN</Curr><Curr>MYR</Curr><Curr>NOK</Curr><Curr>NZD</Curr><Curr>PHP</Curr><Curr>PLN</Curr><Curr>RON</Curr><Curr>RSD</Curr><Curr>RUB</Curr><Curr>SEK</Curr><Curr>SGD</Curr><Curr>THB</Curr><Curr>TRY</Curr><Curr>UAH</Curr><Curr>USD</Curr><Curr>ZAR</Curr><Curr>ATS</Curr><Curr>AUP</Curr><Curr>BEF</Curr><Curr>BGL</Curr><Curr>CSD</Curr><Curr>CSK</Curr><Curr>DDM</Curr><Curr>DEM</Curr><Curr>EEK</Curr><Curr>EGP</Curr><Curr>ESP</Curr><Curr>FIM</Curr><Curr>FRF</Curr><Curr>GHP</Curr><Curr>GRD</Curr><Curr>IEP</Curr><Curr>ITL</Curr><Curr>KPW</Curr><Curr>KWD</Curr><Curr>LBP</Curr><Curr>LTL</Curr><Curr>LUF</Curr><Curr>LVL</Curr><Curr>MNT</Curr><Curr>NLG</Curr><Curr>OAL</Curr><Curr>OBL</Curr><Curr>OFR</Curr><Curr>ORB</Curr><Curr>PKR</Curr><Curr>PTE</Curr><Curr>ROL</Curr><Curr>SDP</Curr><Curr>SIT</Curr><Curr>SKK</Curr><Curr>SUR</Curr><Curr>VND</Curr><Curr>XEU</Curr><Curr>XTR</Curr><Curr>YUD</Curr></Currencies></MNBCurrencies>]]></GetCurrenciesResult>
-      </GetCurrenciesResponse>
-   </s:Body>
+
+	<s:Body>
+	   <GetCurrenciesResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	      <GetCurrenciesResult><![CDATA[<MNBCurrencies><Currencies><Curr>HUF</Curr><Curr>EUR</Curr><Curr>AUD</Curr><Curr>BGN</Curr><Curr>BRL</Curr><Curr>CAD</Curr><Curr>CHF</Curr><Curr>CNY</Curr><Curr>CZK</Curr><Curr>DKK</Curr><Curr>GBP</Curr><Curr>HKD</Curr><Curr>HRK</Curr><Curr>IDR</Curr><Curr>ILS</Curr><Curr>INR</Curr><Curr>ISK</Curr><Curr>JPY</Curr><Curr>KRW</Curr><Curr>MXN</Curr><Curr>MYR</Curr><Curr>NOK</Curr><Curr>NZD</Curr><Curr>PHP</Curr><Curr>PLN</Curr><Curr>RON</Curr><Curr>RSD</Curr><Curr>RUB</Curr><Curr>SEK</Curr><Curr>SGD</Curr><Curr>THB</Curr><Curr>TRY</Curr><Curr>UAH</Curr><Curr>USD</Curr><Curr>ZAR</Curr><Curr>ATS</Curr><Curr>AUP</Curr><Curr>BEF</Curr><Curr>BGL</Curr><Curr>CSD</Curr><Curr>CSK</Curr><Curr>DDM</Curr><Curr>DEM</Curr><Curr>EEK</Curr><Curr>EGP</Curr><Curr>ESP</Curr><Curr>FIM</Curr><Curr>FRF</Curr><Curr>GHP</Curr><Curr>GRD</Curr><Curr>IEP</Curr><Curr>ITL</Curr><Curr>KPW</Curr><Curr>KWD</Curr><Curr>LBP</Curr><Curr>LTL</Curr><Curr>LUF</Curr><Curr>LVL</Curr><Curr>MNT</Curr><Curr>NLG</Curr><Curr>OAL</Curr><Curr>OBL</Curr><Curr>OFR</Curr><Curr>ORB</Curr><Curr>PKR</Curr><Curr>PTE</Curr><Curr>ROL</Curr><Curr>SDP</Curr><Curr>SIT</Curr><Curr>SKK</Curr><Curr>SUR</Curr><Curr>VND</Curr><Curr>XEU</Curr><Curr>XTR</Curr><Curr>YUD</Curr></Currencies></MNBCurrencies>]]></GetCurrenciesResult>
+	   </GetCurrenciesResponse>
+	</s:Body>
+
 </s:Envelope>
 */
 type MNBCurrencies struct {
@@ -159,11 +164,13 @@ func (m MNBArfolyamService) GetCurrencies(ctx context.Context) ([]string, error)
 
 /*
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-   <s:Body>
-      <GetCurrencyUnitsResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-         <GetCurrencyUnitsResult><![CDATA[<MNBCurrencyUnits><Units><Unit curr="HUF">1</Unit></Units></MNBCurrencyUnits>]]></GetCurrencyUnitsResult>
-      </GetCurrencyUnitsResponse>
-   </s:Body>
+
+	<s:Body>
+	   <GetCurrencyUnitsResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	      <GetCurrencyUnitsResult><![CDATA[<MNBCurrencyUnits><Units><Unit curr="HUF">1</Unit></Units></MNBCurrencyUnits>]]></GetCurrencyUnitsResult>
+	   </GetCurrencyUnitsResponse>
+	</s:Body>
+
 </s:Envelope>
 */
 type MNBCurrencyUnits struct {
@@ -186,11 +193,13 @@ func (m MNBArfolyamService) GetCurrencyUnits(ctx context.Context, currency strin
 
 /*
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-   <s:Body>
-      <GetCurrentExchangeRatesResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-         <GetCurrentExchangeRatesResult><![CDATA[<MNBCurrentExchangeRates><Day date="2020-08-14"><Rate unit="1" curr="AUD">209,44</Rate><Rate unit="1" curr="BGN">177,03</Rate><Rate unit="1" curr="BRL">54,58</Rate><Rate unit="1" curr="CAD">221,22</Rate><Rate unit="1" curr="CHF">321,99</Rate><Rate unit="1" curr="CNY">42,16</Rate><Rate unit="1" curr="CZK">13,26</Rate><Rate unit="1" curr="DKK">46,48</Rate><Rate unit="1" curr="EUR">346,25</Rate><Rate unit="1" curr="GBP">383,23</Rate><Rate unit="1" curr="HKD">37,81</Rate><Rate unit="1" curr="HRK">45,96</Rate><Rate unit="100" curr="IDR">1,98</Rate><Rate unit="1" curr="ILS">86,1</Rate><Rate unit="1" curr="INR">3,91</Rate><Rate unit="1" curr="ISK">2,15</Rate><Rate unit="100" curr="JPY">274,56</Rate><Rate unit="100" curr="KRW">24,7</Rate><Rate unit="1" curr="MXN">13,2</Rate><Rate unit="1" curr="MYR">69,87</Rate><Rate unit="1" curr="NOK">32,86</Rate><Rate unit="1" curr="NZD">191,57</Rate><Rate unit="1" curr="PHP">6,02</Rate><Rate unit="1" curr="PLN">78,69</Rate><Rate unit="1" curr="RON">71,59</Rate><Rate unit="1" curr="RSD">2,94</Rate><Rate unit="1" curr="RUB">3,99</Rate><Rate unit="1" curr="SEK">33,63</Rate><Rate unit="1" curr="SGD">213,53</Rate><Rate unit="1" curr="THB">9,42</Rate><Rate unit="1" curr="TRY">39,76</Rate><Rate unit="1" curr="UAH">10,71</Rate><Rate unit="1" curr="USD">293,01</Rate><Rate unit="1" curr="ZAR">16,77</Rate></Day></MNBCurrentExchangeRates>]]></GetCurrentExchangeRatesResult>
-      </GetCurrentExchangeRatesResponse>
-   </s:Body>
+
+	<s:Body>
+	   <GetCurrentExchangeRatesResponse xmlns="http://www.mnb.hu/webservices/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	      <GetCurrentExchangeRatesResult><![CDATA[<MNBCurrentExchangeRates><Day date="2020-08-14"><Rate unit="1" curr="AUD">209,44</Rate><Rate unit="1" curr="BGN">177,03</Rate><Rate unit="1" curr="BRL">54,58</Rate><Rate unit="1" curr="CAD">221,22</Rate><Rate unit="1" curr="CHF">321,99</Rate><Rate unit="1" curr="CNY">42,16</Rate><Rate unit="1" curr="CZK">13,26</Rate><Rate unit="1" curr="DKK">46,48</Rate><Rate unit="1" curr="EUR">346,25</Rate><Rate unit="1" curr="GBP">383,23</Rate><Rate unit="1" curr="HKD">37,81</Rate><Rate unit="1" curr="HRK">45,96</Rate><Rate unit="100" curr="IDR">1,98</Rate><Rate unit="1" curr="ILS">86,1</Rate><Rate unit="1" curr="INR">3,91</Rate><Rate unit="1" curr="ISK">2,15</Rate><Rate unit="100" curr="JPY">274,56</Rate><Rate unit="100" curr="KRW">24,7</Rate><Rate unit="1" curr="MXN">13,2</Rate><Rate unit="1" curr="MYR">69,87</Rate><Rate unit="1" curr="NOK">32,86</Rate><Rate unit="1" curr="NZD">191,57</Rate><Rate unit="1" curr="PHP">6,02</Rate><Rate unit="1" curr="PLN">78,69</Rate><Rate unit="1" curr="RON">71,59</Rate><Rate unit="1" curr="RSD">2,94</Rate><Rate unit="1" curr="RUB">3,99</Rate><Rate unit="1" curr="SEK">33,63</Rate><Rate unit="1" curr="SGD">213,53</Rate><Rate unit="1" curr="THB">9,42</Rate><Rate unit="1" curr="TRY">39,76</Rate><Rate unit="1" curr="UAH">10,71</Rate><Rate unit="1" curr="USD">293,01</Rate><Rate unit="1" curr="ZAR">16,77</Rate></Day></MNBCurrentExchangeRates>]]></GetCurrentExchangeRatesResult>
+	   </GetCurrentExchangeRatesResponse>
+	</s:Body>
+
 </s:Envelope>
 */
 type MNBCurrentExchangeRates struct {
@@ -395,8 +404,8 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	for iter := retryStrategy.Start(); ; {
 		req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
 		if err != nil {
-			if m.Logger.Enabled() {
-				m.Logger.Info("request", "url", URL, "body", reqS)
+			if m.Logger.Enabled(ctx, slog.LevelDebug) {
+				m.Logger.Debug("request", "url", URL, "body", reqS)
 			}
 			return nil, err
 		}
@@ -414,28 +423,28 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 			resp, err := client.Do(req.WithContext(ctx))
 			dur := time.Since(start)
 			if err != nil {
-				if m.Logger.Enabled() {
-					m.Logger.Info("do", "url", URL, "body", reqS, "error", err)
+				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+					m.Logger.Debug("do", "url", URL, "body", reqS, "error", err)
 				}
 				return nil, err
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 400 {
-				if m.Logger.Enabled() {
-					m.Logger.Info(req.URL.String(), "body", reqS, "status", resp.Status)
+				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+					m.Logger.Debug(req.URL.String(), "body", reqS, "status", resp.Status)
 				}
 				return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
 			}
 			buf.Reset()
 			b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
 			if err != nil {
-				if m.Logger.Enabled() {
-					m.Logger.Info("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
+				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+					m.Logger.Debug("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
 				}
 				return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
 			}
-			if m.Logger.Enabled() {
-				m.Logger.Info("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
+			if m.Logger.Enabled(ctx, slog.LevelDebug) {
+				m.Logger.Debug("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
 			}
 			return append(make([]byte, 0, len(b)), b...), nil
 		}()
@@ -449,30 +458,4 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 			return nil, firstErr
 		}
 	}
-}
-
-type nilLogger struct{}
-
-func (nilLogger) Printf(string, ...interface{}) {}
-
-type logLogger struct{ Log func(...interface{}) error }
-
-func (lgr logLogger) Printf(pat string, args ...interface{}) { _ = lgr.Log(fmt.Sprintf(pat, args...)) }
-func (lgr logLogger) msg(lvl, msg string, keysAndValues ...interface{}) {
-	_ = lgr.Log(append(append(make([]interface{}, 0, 4+len(keysAndValues)), "msg", msg, "lvl", lvl), keysAndValues...)...)
-}
-func (lgr logLogger) Error(msg string, keysAndValues ...interface{}) {
-	lgr.msg("ERROR", msg, keysAndValues...)
-}
-
-func (lgr logLogger) Info(msg string, keysAndValues ...interface{}) {
-	lgr.msg("INFO", msg, keysAndValues...)
-}
-
-func (lgr logLogger) Debug(msg string, keysAndValues ...interface{}) {
-	lgr.msg("DEBUG", msg, keysAndValues...)
-}
-
-func (lgr logLogger) Warn(msg string, keysAndValues ...interface{}) {
-	lgr.msg("WARN", msg, keysAndValues...)
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Tamás Gulácsi
+Copyright 2020, 2023 Tamás Gulácsi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,28 +22,28 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"text/template"
 	"time"
 
-	"github.com/go-logr/logr"
-	"github.com/go-logr/zerologr"
+	"github.com/UNO-SOFT/zlog/v2"
 	"github.com/peterbourgon/ff/v3/ffcli"
-	"github.com/rs/zerolog"
 	"github.com/tgulacsi/mnbarf/mnb"
 )
 
-//go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
-//go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
+// go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
+// go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
+//go:generate qtc
 
-var zl = zerolog.New(os.Stderr)
-var logger = zerologr.New(&zl)
+var verbose zlog.VerboseVar
+var logger = zlog.NewLogger(zlog.MaybeConsoleHandler(&verbose, os.Stderr)).SLog()
 
 func main() {
 	if err := Main(); err != nil {
-		logger.Error(err, "ERROR")
+		logger.Error("ERROR", "error", err)
 		os.Exit(1)
 	}
 }
@@ -53,7 +53,7 @@ func Main() error {
 	var wsR mnb.MNBAlapkamatService
 	fs := flag.NewFlagSet("mnbarf", flag.ContinueOnError)
 	flagOutFormat := fs.String("format", "csv", `output format (possible: csv, json or template (go template: you can use Day, Currency, Unit and Rate - i.e. {{.Day}},{{.Currency}},{{.Unit}},{{.Rate}}{{print "\n"}})`)
-	flagVerbose := fs.Bool("v", false, "verbose logging")
+	fs.Var(&verbose, "v", "verbose logging")
 	flagURL := fs.String("url", "", "URL to use")
 
 	baserateCmd := ffcli.Command{
@@ -203,9 +203,9 @@ Generate (and build) new webservice client
 	if err := app.Parse(os.Args[1:]); err != nil {
 		return err
 	}
-	mnbLogger := logr.Discard()
-	if *flagVerbose {
-		mnbLogger = logger.WithValues("lib", "mnb")
+	mnbLogger := slog.Default()
+	if verbose > 0 {
+		mnbLogger = logger.WithGroup("mnb")
 	}
 
 	wsC = mnb.NewMNBArfolyamService(*flagURL, nil, mnbLogger)
