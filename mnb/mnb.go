@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Tamás Gulácsi
+Copyright 2020, 2024 Tamás Gulácsi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ func NewMNBAlapkamatService(URL string, client *http.Client, logger *slog.Logger
 func NewMNB(URL string, client *http.Client, logger *slog.Logger) MNB {
 	if logger == nil {
 		logger = slog.Default()
+	}
+	if client == nil {
+		client = http.DefaultClient
 	}
 	return MNB{URL: URL, Logger: logger, Client: client}
 }
@@ -406,7 +409,7 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 	for iter := retryStrategy.Start(); ; {
 		req, err := http.NewRequest("POST", URL, strings.NewReader(reqS))
 		if err != nil {
-			if m.Logger.Enabled(ctx, slog.LevelDebug) {
+			if m.Logger != nil && m.Logger.Enabled(ctx, slog.LevelDebug) {
 				m.Logger.Debug("request", "url", URL, "body", reqS)
 			}
 			return nil, err
@@ -425,14 +428,14 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 			resp, err := client.Do(req.WithContext(ctx))
 			dur := time.Since(start)
 			if err != nil {
-				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+				if m.Logger != nil && m.Logger.Enabled(ctx, slog.LevelDebug) {
 					m.Logger.Debug("do", "url", URL, "body", reqS, "error", err)
 				}
 				return nil, err
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 400 {
-				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+				if m.Logger != nil && m.Logger.Enabled(ctx, slog.LevelDebug) {
 					m.Logger.Debug(req.URL.String(), "body", reqS, "status", resp.Status)
 				}
 				return nil, fmt.Errorf("%s %q: %s", req.Method, req.URL, resp.Status)
@@ -440,12 +443,12 @@ func (m MNB) call(ctx context.Context, defaultURL, action string, body string) (
 			buf.Reset()
 			b, err := FindBody(xml.NewDecoder(io.TeeReader(resp.Body, &buf)))
 			if err != nil {
-				if m.Logger.Enabled(ctx, slog.LevelDebug) {
+				if m.Logger != nil && m.Logger.Enabled(ctx, slog.LevelDebug) {
 					m.Logger.Debug("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "error", err)
 				}
 				return nil, fmt.Errorf("FindBody(%q): %w", buf.String(), err)
 			}
-			if m.Logger.Enabled(ctx, slog.LevelDebug) {
+			if m.Logger != nil && m.Logger.Enabled(ctx, slog.LevelDebug) {
 				m.Logger.Debug("FindBody", "url", URL, "request", reqS, "status", resp.Status, "response", buf.String(), "dur", dur, "data", string(b))
 			}
 			return append(make([]byte, 0, len(b)), b...), nil
