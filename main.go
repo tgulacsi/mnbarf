@@ -36,10 +36,6 @@ import (
 	"github.com/tgulacsi/mnbarf/mnb"
 )
 
-// go:generate gowsdl -p mnb -o generated_arfolyamok.go "http://www.mnb.hu/arfolyamok.asmx?WSDL"
-// go:generate gowsdl -p mnb -o generated_alapkamat.go "http://www.mnb.hu/alapkamat.asmx?WSDL"
-//go:generate qtc
-
 var verbose zlog.VerboseVar
 var logger = zlog.NewLogger(zlog.MaybeConsoleHandler(&verbose, os.Stderr)).SLog()
 
